@@ -1,46 +1,61 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Transport } from './components/Transport';
 import { ShareModal } from './components/ShareModal';
+import { DeployModal } from './components/DeployModal';
 import { HelpTooltip } from './components/HelpTooltip';
 import { DEFAULT_SESSION_DATA } from './constants';
-import { encodeSessionData, decodeSessionData } from './utils/dataEncoder';
+import { decodeSessionData, encodeSessionData } from './utils/dataEncoder';
 import { AudioEngine } from './audio/AudioEngine';
-import type { SessionData, Note, DrumPatternGrid, TrackType, SynthInstrumentType } from './types';
-import { PlayIcon, PlusIcon } from './components/icons';
+import type { SessionData, Note, DrumPatternGrid, TrackType } from './types';
+import { PlayIcon, PlusIcon, DeployIcon } from './components/icons';
 import { Track } from './components/Track';
 import { DetailView } from './components/DetailView';
 import { TimelineRuler } from './components/TimelineRuler';
 
+const getInitialData = (): SessionData => {
+    // 1. Check for injected data (for deployed version)
+    if ((window as any).INITIAL_SESSION_DATA) {
+        try {
+            // Potentially add some validation here in the future
+            return (window as any).INITIAL_SESSION_DATA as SessionData;
+        } catch (e) {
+            console.error("インジェクトされたセッションデータの解析に失敗しました:", e);
+        }
+    }
+
+    // 2. Check for URL data (for shared links)
+    try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const data = urlParams.get('data');
+        if (data) {
+            const decodedData = decodeSessionData(data);
+            if (decodedData) {
+                return decodedData;
+            }
+        }
+    } catch (error) {
+        console.error("URLからのデータ読み込みに失敗しました:", error);
+    }
+
+    // 3. Fallback to default
+    return DEFAULT_SESSION_DATA;
+};
+
+
 const App: React.FC = () => {
-  const [sessionData, setSessionData] = useState<SessionData>(DEFAULT_SESSION_DATA);
+  const [sessionData, setSessionData] = useState<SessionData>(getInitialData);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [currentStep, setCurrentStep] = useState<number>(0);
   const [isShareModalOpen, setIsShareModalOpen] = useState<boolean>(false);
+  const [isDeployModalOpen, setIsDeployModalOpen] = useState<boolean>(false);
   const [shareUrl, setShareUrl] = useState<string>('');
   const [isAudioEngineReady, setIsAudioEngineReady] = useState(false);
-  const [selectedTrackId, setSelectedTrackId] = useState<string | null>(DEFAULT_SESSION_DATA.tracks[0]?.id ?? null);
+  const [selectedTrackId, setSelectedTrackId] = useState<string | null>(getInitialData().tracks[0]?.id ?? null);
 
   const audioEngine = useRef<AudioEngine | null>(null);
   const arrangementContainerRef = useRef<HTMLDivElement>(null);
   const detailContainerRef = useRef<HTMLDivElement>(null);
 
-  const loadDataFromUrl = useCallback(() => {
-    try {
-      const urlParams = new URLSearchParams(window.location.search);
-      const data = urlParams.get('data');
-      if (data) {
-        const decodedData = decodeSessionData(data);
-        if (decodedData) {
-          setSessionData(decodedData);
-          setSelectedTrackId(decodedData.tracks[0]?.id ?? null);
-        }
-      }
-    } catch (error) {
-      console.error("URLからのデータ読み込みに失敗しました:", error);
-      alert("URLからプロジェクトを読み込めませんでした。データが破損している可能性があります。");
-    }
-  }, []);
-  
   const initAudioEngine = async () => {
       if (!audioEngine.current) {
           audioEngine.current = new AudioEngine();
@@ -48,10 +63,6 @@ const App: React.FC = () => {
           setIsAudioEngineReady(true);
       }
   };
-
-  useEffect(() => {
-    loadDataFromUrl();
-  }, [loadDataFromUrl]);
 
   const play = async () => {
       if (!audioEngine.current || !isAudioEngineReady) {
@@ -271,6 +282,10 @@ const App: React.FC = () => {
       setIsShareModalOpen(true);
   };
 
+  const handleDeploy = () => {
+    setIsDeployModalOpen(true);
+  };
+
   const playNotePreview = (pitch: string) => {
     const track = sessionData.tracks.find(t => t.id === selectedTrackId);
     if (!audioEngine.current || !track || track.type !== 'synth') return;
@@ -331,6 +346,13 @@ const App: React.FC = () => {
           </h1>
           <div className="flex items-center space-x-4 mt-4 sm:mt-0">
             <HelpTooltip />
+            <button
+                onClick={handleDeploy}
+                className="flex items-center space-x-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-md transition duration-200"
+            >
+                <DeployIcon />
+                <span>デプロイ</span>
+            </button>
             <button
                 onClick={handleShare}
                 className="bg-cyan-500 hover:bg-cyan-600 text-white font-semibold py-2 px-4 rounded-md transition duration-200"
@@ -435,6 +457,12 @@ const App: React.FC = () => {
               url={shareUrl}
               onClose={() => setIsShareModalOpen(false)}
           />
+      )}
+      {isDeployModalOpen && (
+        <DeployModal
+          sessionData={sessionData}
+          onClose={() => setIsDeployModalOpen(false)}
+        />
       )}
     </div>
   );
