@@ -2,6 +2,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom/client';
 
+declare const Soundfont: any;
+
 // --- BUNDLED TYPES (from types.ts) ---
 interface Note {
   id: string;
@@ -22,7 +24,7 @@ interface DrumPattern {
 }
 
 interface BaseTrack {
-  id: string;
+  id:string;
   name: string;
   volume: number; // 0-1
   muted?: boolean;
@@ -53,19 +55,19 @@ interface SessionData {
 
 // --- BUNDLED ICONS (from components/icons.tsx) ---
 const PlayIcon: React.FC = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <polygon points="5 3 19 12 5 21 5 3"></polygon>
   </svg>
 );
 
 const StopIcon: React.FC = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
   </svg>
 );
 
 const HelpIcon: React.FC = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="10"></circle>
     <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
     <line x1="12" y1="17" x2="12.01" y2="17"></line>
@@ -73,14 +75,14 @@ const HelpIcon: React.FC = () => (
 );
 
 const PlusIcon: React.FC = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <line x1="12" y1="5" x2="12" y2="19"></line>
       <line x1="5" y1="12" x2="19" y2="12"></line>
     </svg>
 );
   
 const TrashIcon: React.FC = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <polyline points="3 6 5 6 21 6"></polyline>
         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
         <line x1="10" y1="11" x2="10" y2="17"></line>
@@ -92,15 +94,16 @@ const TrashIcon: React.FC = () => (
 const generatePianoRollData = () => {
     const notes: string[] = [];
     const japaneseNames: { [key: string]: string } = {};
-    const noteBases = ['A', 'A#', 'B', 'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#'];
+    const noteBases = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
     const japaneseNoteBases: { [key: string]: string } = {
-        'A': 'ラ', 'A#': 'ラ#', 'B': 'シ', 'C': 'ド', 'C#': 'ド#', 'D': 'レ', 'D#': 'レ#', 'E': 'ミ', 'F': 'ファ', 'F#': 'ファ#', 'G': 'ソ', 'G#': 'ソ#',
+        'C': 'ド', 'C#': 'ド#', 'D': 'レ', 'D#': 'レ#', 'E': 'ミ', 'F': 'ファ', 'F#': 'ファ#', 'G': 'ソ', 'G#': 'ソ#', 'A': 'ラ', 'A#': 'ラ#', 'B': 'シ',
     };
 
-    // 88鍵（A0からC8まで）を生成
-    for (let i = 0; i < 88; i++) {
-        const octave = Math.floor((i + 9) / 12);
-        const noteIndex = (i + 9) % 12;
+    // 88鍵（A0からC8まで）を生成 (MIDIノート番号 21 to 108)
+    for (let i = 21; i <= 108; i++) {
+        const midiNote = i;
+        const octave = Math.floor(midiNote / 12) - 1;
+        const noteIndex = midiNote % 12;
         const noteBase = noteBases[noteIndex];
         const note = `${noteBase}${octave}`;
         notes.push(note);
@@ -113,6 +116,7 @@ const generatePianoRollData = () => {
         japaneseNames
     };
 };
+
 
 const pianoRollData = generatePianoRollData();
 const PIANO_ROLL_NOTES = pianoRollData.notes;
@@ -142,8 +146,8 @@ const TOTAL_STEPS_DEFAULT = BARS_DEFAULT * STEPS_PER_BAR;
 
 const oneBarKick = [true, false, false, false, true, false, false, false, true, false, false, false, true, false, false, false];
 const oneBarSnare = [false, false, false, false, true, false, false, false, false, false, false, false, true, false, false, false];
-const oneBarHihat = [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true];
-const oneBarClap = [false, false, false, false, true, false, false, true, false, false, false, false, true, false, false, true];
+const oneBarHihat = [true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false];
+const oneBarClap = [false, false, false, false, true, false, false, false, false, false, false, false, true, false, false, false];
 
 const DEFAULT_SESSION_DATA: SessionData = {
   bpm: 120,
@@ -154,20 +158,28 @@ const DEFAULT_SESSION_DATA: SessionData = {
     {
       id: 'track-synth-1',
       type: 'synth',
-      name: 'メロディーシンセ',
-      instrument: 'sawtooth',
+      name: 'メロディー',
+      instrument: 'piano',
       volume: 0.8,
       muted: false,
       soloed: false,
       notes: [
-        { id: 'default-note-1', pitch: 'C4', startBeat: 0, duration: 0.25 },
-        { id: 'default-note-2', pitch: 'D4', startBeat: 1, duration: 0.25 },
-        { id: 'default-note-3', pitch: 'E4', startBeat: 2, duration: 0.25 },
-        { id: 'default-note-4', pitch: 'F4', startBeat: 3, duration: 0.25 },
-        { id: 'default-note-5', pitch: 'G4', startBeat: 4, duration: 0.25 },
-        { id: 'default-note-6', pitch: 'A4', startBeat: 5, duration: 0.25 },
-        { id: 'default-note-7', pitch: 'B4', startBeat: 6, duration: 0.25 },
-        { id: 'default-note-8', pitch: 'C5', startBeat: 7, duration: 0.25 },
+        // Bar 1 (C)
+        { id: 'melody-1', pitch: 'G4', startBeat: 0, duration: 0.5 },
+        { id: 'melody-2', pitch: 'E4', startBeat: 1, duration: 0.5 },
+        { id: 'melody-3', pitch: 'C4', startBeat: 2, duration: 1 },
+        // Bar 2 (G)
+        { id: 'melody-4', pitch: 'F4', startBeat: 4, duration: 0.5 },
+        { id: 'melody-5', pitch: 'D4', startBeat: 5, duration: 0.5 },
+        { id: 'melody-6', pitch: 'B3', startBeat: 6, duration: 1 },
+        // Bar 3 (Am)
+        { id: 'melody-7', pitch: 'E4', startBeat: 8, duration: 0.5 },
+        { id: 'melody-8', pitch: 'C4', startBeat: 9, duration: 0.5 },
+        { id: 'melody-9', pitch: 'A3', startBeat: 10, duration: 1 },
+        // Bar 4 (F)
+        { id: 'melody-10', pitch: 'D4', startBeat: 12, duration: 0.5 },
+        { id: 'melody-11', pitch: 'B3', startBeat: 13, duration: 0.5 },
+        { id: 'melody-12', pitch: 'G3', startBeat: 14, duration: 1 },
       ]
     },
     {
@@ -223,115 +235,35 @@ function decodeSessionData(encodedData: string): SessionData | null {
 
 
 // --- BUNDLED AUDIO (from audio/AudioEngine.ts) ---
-const createKick = (ctx: AudioContext, time: number, destination: AudioNode) => {
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.frequency.setValueAtTime(150, time);
-    osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.1);
-    gain.gain.setValueAtTime(1, time);
-    gain.gain.exponentialRampToValueAtTime(0.01, time + 0.15);
-    osc.connect(gain);
-    gain.connect(destination);
-    osc.start(time);
-    osc.stop(time + 0.15);
+const SYNTH_INSTRUMENT_MAP: { [key in SynthInstrumentType]: string } = {
+    piano: 'acoustic_grand_piano',
+    guitar: 'acoustic_guitar_steel',
+    bass: 'electric_bass_finger',
+    sawtooth: 'lead_2_sawtooth',
+    square: 'lead_1_square',
+    sine: 'pad_2_warm',
+    triangle: 'pad_3_polysynth',
 };
 
-const createSnare = (ctx: AudioContext, time: number, destination: AudioNode) => {
-    const noise = ctx.createBufferSource();
-    const buffer = ctx.createBuffer(1, ctx.sampleRate * 0.2, ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < data.length; i++) {
-        data[i] = Math.random() * 2 - 1;
-    }
-    noise.buffer = buffer;
-    const filter = ctx.createBiquadFilter();
-    filter.type = 'highpass';
-    filter.frequency.value = 1000;
-    noise.connect(filter);
-    const gain = ctx.createGain();
-    gain.gain.setValueAtTime(1, time);
-    gain.gain.exponentialRampToValueAtTime(0.01, time + 0.15);
-    filter.connect(gain);
-    gain.connect(destination);
-    noise.start(time);
-    noise.stop(time + 0.2);
+// Use a standard GM synth drum kit name which is more likely to exist in soundfonts
+const DRUM_INSTRUMENT_SOUNDFONT_NAME = 'synth_drum';
+
+const DRUM_NOTE_MAP: { [key in DrumInstrument]: string } = {
+    kick: 'C2',
+    snare: 'D2',
+    hihat: 'F#2',
+    clap: 'D#2',
 };
-
-const createHihat = (ctx: AudioContext, time: number, destination: AudioNode) => {
-    const noise = ctx.createBufferSource();
-    const buffer = ctx.createBuffer(1, ctx.sampleRate * 0.1, ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < data.length; i++) {
-        data[i] = Math.random() * 2 - 1;
-    }
-    noise.buffer = buffer;
-    const filter = ctx.createBiquadFilter();
-    filter.type = 'highpass';
-    filter.frequency.value = 7000;
-    noise.connect(filter);
-    const gain = ctx.createGain();
-    gain.gain.setValueAtTime(0.3, time);
-    gain.gain.exponentialRampToValueAtTime(0.01, time + 0.05);
-    filter.connect(gain);
-    gain.connect(destination);
-    noise.start(time);
-    noise.stop(time + 0.1);
-};
-
-const createClap = (ctx: AudioContext, time: number, destination: AudioNode) => {
-    const gain = ctx.createGain();
-    for(let i = 0; i < 3; i++) {
-        const noise = ctx.createBufferSource();
-        const buffer = ctx.createBuffer(1, ctx.sampleRate * 0.1, ctx.sampleRate);
-        const data = buffer.getChannelData(0);
-        for (let j = 0; j < data.length; j++) {
-            data[j] = Math.random() * 2 - 1;
-        }
-        noise.buffer = buffer;
-        const delayTime = i * 0.005;
-        noise.start(time + delayTime);
-        noise.stop(time + delayTime + 0.1);
-        noise.connect(gain);
-    }
-    const filter = ctx.createBiquadFilter();
-    filter.type = "bandpass";
-    filter.frequency.value = 1200;
-    gain.connect(filter);
-    const finalGain = ctx.createGain();
-    finalGain.gain.setValueAtTime(0.7, time);
-    finalGain.gain.exponentialRampToValueAtTime(0.01, time + 0.08);
-    filter.connect(finalGain);
-    finalGain.connect(destination);
-};
-
-const generateFrequencies = (): { [key: string]: number } => {
-    const frequencies: { [key: string]: number } = {};
-    const noteNames = ['A', 'A#', 'B', 'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#'];
-    const a4 = 440;
-
-    for (let i = 0; i < 88; i++) {
-        const noteName = noteNames[(i + 9) % 12];
-        const octave = Math.floor((i + 9) / 12);
-        const note = `${noteName}${octave}`;
-        const keyNumber = i - 48;
-        const frequency = a4 * Math.pow(2, keyNumber / 12);
-        frequencies[note] = frequency;
-    }
-    return frequencies;
-};
-
-const NOTE_FREQUENCIES = generateFrequencies();
 
 class AudioEngine {
     private audioContext: AudioContext | null = null;
     private masterGain: GainNode | null = null;
-    private drumSamples: { [key in DrumInstrument]: (ctx: AudioContext, time: number, destination: AudioNode) => void };
+    private instrumentCache: Map<string, any> = new Map();
+    private activeSources: Set<any> = new Set();
 
-    constructor() {
-        this.drumSamples = { kick: createKick, snare: createSnare, hihat: createHihat, clap: createClap };
-    }
+    constructor() {}
 
-    async init() {
+    async init(instrumentNames: string[] = []) {
         if (!this.audioContext) {
             this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
             this.masterGain = this.audioContext.createGain();
@@ -340,6 +272,44 @@ class AudioEngine {
         if (this.audioContext.state === 'suspended') {
             await this.audioContext.resume();
         }
+
+        const soundfontNamesToLoad = instrumentNames.map(name => {
+            if (name === 'drum_kit') {
+                return DRUM_INSTRUMENT_SOUNDFONT_NAME;
+            }
+            return SYNTH_INSTRUMENT_MAP[name as SynthInstrumentType] || 'acoustic_grand_piano';
+        });
+
+        const uniqueSoundfontNames = [...new Set(soundfontNamesToLoad)];
+        
+        console.log('Pre-loading instruments:', uniqueSoundfontNames);
+        const loadPromises = uniqueSoundfontNames.map(name => this.loadInstrument(name));
+        await Promise.all(loadPromises);
+        console.log('All instruments loaded.');
+    }
+    
+    public async loadInstrument(instrumentName: string): Promise<any> {
+        if (this.instrumentCache.has(instrumentName)) {
+            return this.instrumentCache.get(instrumentName);
+        }
+        if (!this.audioContext) {
+            throw new Error("AudioContext not initialized");
+        }
+        try {
+            const instrument = await Soundfont.instrument(this.audioContext, instrumentName, { soundfont: 'MusyngKite', gain: 2 });
+            this.instrumentCache.set(instrumentName, instrument);
+            return instrument;
+        } catch (e) {
+            console.error(`Failed to load instrument: ${instrumentName}`, e);
+            return null;
+        }
+    }
+    
+    public isInstrumentLoaded(instrumentName: SynthInstrumentType | 'drum_kit'): boolean {
+        const soundfontName = instrumentName === 'drum_kit'
+            ? DRUM_INSTRUMENT_SOUNDFONT_NAME
+            : SYNTH_INSTRUMENT_MAP[instrumentName as SynthInstrumentType];
+        return this.instrumentCache.has(soundfontName);
     }
     
     start() {
@@ -348,135 +318,61 @@ class AudioEngine {
         }
     }
 
-    stop() {}
+    stop() {
+         this.activeSources.forEach(source => {
+            if (source && typeof source.stop === 'function') {
+                try {
+                    source.stop();
+                } catch (e) {
+                    // Source might already have been stopped
+                }
+            }
+        });
+        this.activeSources.clear();
+    }
 
     getCurrentTime(): number {
         return this.audioContext?.currentTime || 0;
     }
 
-    playDrum(instrument: DrumInstrument, time: number, volume: number) {
+    async playDrum(instrument: DrumInstrument, time: number, volume: number) {
         if (!this.audioContext || !this.masterGain) return;
-        const drumGain = this.audioContext.createGain();
-        drumGain.gain.setValueAtTime(volume, time);
-        drumGain.connect(this.masterGain);
-        this.drumSamples[instrument](this.audioContext, time, drumGain);
+        try {
+            const percussion = await this.loadInstrument(DRUM_INSTRUMENT_SOUNDFONT_NAME);
+            if (!percussion) return;
+
+            const note = DRUM_NOTE_MAP[instrument];
+            const source = percussion.play(note, time, { gain: volume * 1.5 });
+            this.activeSources.add(source);
+        } catch(e) {
+            console.error("Error playing drum sound:", e);
+        }
     }
 
-    playSynth(pitch: string, time: number, duration: number, volume: number, instrument: SynthInstrumentType) {
+    async playSynth(pitch: string, time: number, duration: number, volume: number, instrument: SynthInstrumentType) {
         if (!this.audioContext || !this.masterGain) return;
-        const freq = NOTE_FREQUENCIES[pitch];
-        if (!freq) return;
-        const gainNode = this.audioContext.createGain();
-        gainNode.connect(this.masterGain);
-        switch (instrument) {
-            case 'piano': {
-                const fundamental = this.audioContext.createOscillator();
-                fundamental.type = 'triangle';
-                fundamental.frequency.setValueAtTime(freq, time);
-                const harmonic = this.audioContext.createOscillator();
-                harmonic.type = 'sawtooth';
-                harmonic.frequency.setValueAtTime(freq * 2, time);
-                const harmonicGain = this.audioContext.createGain();
-                harmonicGain.gain.value = 0.3;
-                const filter = this.audioContext.createBiquadFilter();
-                filter.type = 'lowpass';
-                filter.frequency.setValueAtTime(5000, time);
-                filter.Q.setValueAtTime(1, time);
-                fundamental.connect(filter);
-                harmonic.connect(harmonicGain);
-                harmonicGain.connect(filter);
-                filter.connect(gainNode);
-                const attackTime = 0.01;
-                const decayTime = 0.2;
-                const sustainLevel = 0.6;
-                const releaseTime = 0.5;
-                gainNode.gain.setValueAtTime(0, time);
-                gainNode.gain.linearRampToValueAtTime(volume, time + attackTime);
-                gainNode.gain.exponentialRampToValueAtTime(volume * sustainLevel, time + attackTime + decayTime);
-                gainNode.gain.setValueAtTime(gainNode.gain.value, time + duration);
-                gainNode.gain.exponentialRampToValueAtTime(0.0001, time + duration + releaseTime);
-                fundamental.start(time);
-                fundamental.stop(time + duration + releaseTime);
-                harmonic.start(time);
-                harmonic.stop(time + duration + releaseTime);
-                return;
-            }
-            case 'guitar': {
-                const fundamentalFreq = freq;
-                const decay = 0.996;
-                const delayTime = 1.0 / fundamentalFreq;
-                if (delayTime > 1.0) return;
-                const noise = this.audioContext.createBufferSource();
-                const buffer = this.audioContext.createBuffer(1, this.audioContext.sampleRate * 0.05, this.audioContext.sampleRate);
-                const data = buffer.getChannelData(0);
-                for (let i = 0; i < data.length; i++) {
-                    data[i] = Math.random() * 2 - 1;
-                }
-                noise.buffer = buffer;
-                const filter = this.audioContext.createBiquadFilter();
-                filter.type = 'lowpass';
-                filter.frequency.value = 2500;
-                filter.Q.value = 1;
-                const delayNode = this.audioContext.createDelay(delayTime);
-                delayNode.delayTime.value = delayTime;
-                const feedbackGain = this.audioContext.createGain();
-                feedbackGain.gain.value = decay;
-                noise.connect(filter);
-                filter.connect(delayNode);
-                delayNode.connect(feedbackGain);
-                feedbackGain.connect(filter);
-                delayNode.connect(gainNode);
-                gainNode.gain.setValueAtTime(0, time);
-                gainNode.gain.linearRampToValueAtTime(volume * 0.9, time + 0.01);
-                gainNode.gain.exponentialRampToValueAtTime(0.0001, time + duration + 1.5);
-                noise.start(time);
-                noise.stop(time + 0.05);
-                const stopTime = time + duration + 1.6;
-                setTimeout(() => {
-                    try {
-                        filter.disconnect();
-                        delayNode.disconnect();
-                        feedbackGain.disconnect();
-                    } catch(e) {}
-                }, (stopTime - this.audioContext.currentTime) * 1000 + 100);
-                return;
-            }
-            case 'bass':
-                const bassOsc = this.audioContext.createOscillator();
-                bassOsc.type = 'square';
-                bassOsc.frequency.setValueAtTime(freq / 2, time);
-                const filter = this.audioContext.createBiquadFilter();
-                filter.type = 'lowpass';
-                filter.frequency.setValueAtTime(400, time);
-                gainNode.gain.setValueAtTime(0, time);
-                gainNode.gain.linearRampToValueAtTime(volume * 0.9, time + 0.01);
-                gainNode.gain.linearRampToValueAtTime(0, time + duration);
-                bassOsc.connect(filter);
-                filter.connect(gainNode);
-                bassOsc.start(time);
-                bassOsc.stop(time + duration);
-                return;
-            case 'sawtooth':
-            case 'square':
-            case 'sine':
-            case 'triangle':
-            default:
-                const osc = this.audioContext.createOscillator();
-                osc.type = instrument;
-                osc.frequency.setValueAtTime(freq, time);
-                gainNode.gain.setValueAtTime(0, time);
-                gainNode.gain.linearRampToValueAtTime(0.5 * volume, time + 0.01);
-                gainNode.gain.linearRampToValueAtTime(0, time + duration);
-                osc.connect(gainNode);
-                osc.start(time);
-                osc.stop(time + duration);
-                break;
+        const instrumentName = SYNTH_INSTRUMENT_MAP[instrument] || 'acoustic_grand_piano';
+        try {
+            const synth = await this.loadInstrument(instrumentName);
+            if (!synth) return;
+            
+            const source = synth.play(pitch, time, { duration: duration, gain: volume });
+            this.activeSources.add(source);
+        } catch (e) {
+            console.error("Error playing synth note:", e);
         }
     }
 }
 
 
 // --- BUNDLED COMPONENTS ---
+
+const LoadingOverlay: React.FC<{ text?: string }> = ({ text }) => (
+  <div className="fixed inset-0 bg-gray-950 bg-opacity-80 flex flex-col items-center justify-center z-50 transition-opacity duration-300">
+    <div className="w-12 h-12 border-4 border-t-cyan-400 border-gray-600 rounded-full animate-spin"></div>
+    {text && <p className="text-white text-lg mt-4 animate-pulse">{text}</p>}
+  </div>
+);
 
 const HelpTooltip: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -535,70 +431,6 @@ const ShareModal: React.FC<{ url: string; onClose: () => void; }> = ({ url, onCl
             {copySuccess || 'URLをコピー'}
           </button>
         </div>
-        <button onClick={onClose} className="mt-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-md w-full">
-          閉じる
-        </button>
-      </div>
-    </div>
-  );
-};
-
-const DeployModal: React.FC<{ sessionData: SessionData; onClose: () => void; }> = ({ sessionData, onClose }) => {
-  const [status, setStatus] = useState<'idle' | 'generating' | 'success' | 'error'>('idle');
-  const [errorMessage, setErrorMessage] = useState('');
-  const handleGenerateAndDownload = async () => {
-    setStatus('generating');
-    setErrorMessage('');
-    try {
-      const response = await fetch(window.location.origin + '/index.html');
-      if (!response.ok) throw new Error(`HTMLの取得に失敗しました: ${response.statusText}`);
-      let htmlContent = await response.text();
-      const injectedScript = `<script>window.INITIAL_SESSION_DATA = ${JSON.stringify(sessionData)};</script>`;
-      htmlContent = htmlContent.replace('</head>', `  ${injectedScript}\n  </head>`);
-      const blob = new Blob([htmlContent], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'index.html';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      setStatus('success');
-      setTimeout(() => setStatus('idle'), 3000);
-    } catch (error: any) {
-      console.error('デプロイ用HTMLの生成に失敗しました:', error);
-      setErrorMessage(error.message || '不明なエラーが発生しました。');
-      setStatus('error');
-    }
-  };
-  useEffect(() => {
-      const handleEsc = (event: KeyboardEvent) => {
-         if (event.key === 'Escape') onClose();
-      };
-      window.addEventListener('keydown', handleEsc);
-      return () => window.removeEventListener('keydown', handleEsc);
-  }, [onClose]);
-  const getButtonText = () => {
-    switch (status) {
-      case 'generating': return '生成中...';
-      case 'success': return 'ダウンロードしました！';
-      case 'error': return '再試行';
-      default: return 'HTMLを生成＆ダウンロード';
-    }
-  };
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-gray-800 rounded-lg p-6 shadow-xl max-w-lg w-full" onClick={(e) => e.stopPropagation()}>
-        <h2 className="text-2xl font-bold mb-4 text-white">GitHub Pagesにデプロイ</h2>
-        <div className="text-gray-400 mb-4 space-y-3">
-            <p>この機能は、プロジェクト全体を自己完結型の単一<code className="bg-gray-900 text-cyan-400 px-1 py-0.5 rounded text-sm">index.html</code>ファイルとして生成します。</p>
-            <p>ダウンロードしたファイルをGitHubリポジトリにアップロードし、<a href="https://docs.github.com/ja/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline">GitHub Pagesを有効化</a>することで、あなたの音楽をウェブサイトとして公開できます。</p>
-        </div>
-        <button onClick={handleGenerateAndDownload} disabled={status === 'generating' || status === 'success'} className="bg-cyan-500 hover:bg-cyan-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-2 px-4 rounded-md transition duration-200 w-full">
-          {getButtonText()}
-        </button>
-        {status === 'error' && <p className="text-red-400 mt-2 text-sm">{errorMessage}</p>}
         <button onClick={onClose} className="mt-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-md w-full">
           閉じる
         </button>
@@ -945,27 +777,44 @@ const App: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [currentStep, setCurrentStep] = useState<number>(0);
   const [isShareModalOpen, setIsShareModalOpen] = useState<boolean>(false);
-  const [isDeployModalOpen, setIsDeployModalOpen] = useState<boolean>(false);
   const [shareUrl, setShareUrl] = useState<string>('');
   const [isAudioEngineReady, setIsAudioEngineReady] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadingText, setLoadingText] = useState('');
   const [selectedTrackId, setSelectedTrackId] = useState<string | null>(getInitialData().tracks[0]?.id ?? null);
   const audioEngine = useRef<AudioEngine | null>(null);
   const arrangementContainerRef = useRef<HTMLDivElement>(null);
   const detailContainerRef = useRef<HTMLDivElement>(null);
+  const playbackStartTime = useRef(0);
 
   const initAudioEngine = async () => {
-      if (!audioEngine.current) {
-          audioEngine.current = new AudioEngine();
-          await audioEngine.current.init();
-          setIsAudioEngineReady(true);
-      }
+      if (audioEngine.current) return;
+      setIsStarting(true);
+      audioEngine.current = new AudioEngine();
+      
+      const instrumentsToLoad: string[] = [];
+      sessionData.tracks.forEach(track => {
+          if (track.type === 'synth') {
+              instrumentsToLoad.push(track.instrument);
+          } else if (track.type === 'drum') {
+              instrumentsToLoad.push('drum_kit');
+          }
+      });
+      const uniqueInstruments = [...new Set(instrumentsToLoad)];
+
+      await audioEngine.current.init(uniqueInstruments);
+      setIsAudioEngineReady(true);
+      setIsStarting(false);
   };
 
   const play = async () => {
       if (!audioEngine.current || !isAudioEngineReady) await initAudioEngine();
       if (!audioEngine.current) return;
       if (!isPlaying) {
-          setCurrentStep((sessionData.loopStartBar - 1) * 16);
+          const loopStartStep = (sessionData.loopStartBar - 1) * 16;
+          setCurrentStep(loopStartStep);
+          playbackStartTime.current = audioEngine.current.getCurrentTime();
           audioEngine.current.start();
           setIsPlaying(true);
       }
@@ -987,8 +836,12 @@ const App: React.FC = () => {
             const loopStartStep = (sessionData.loopStartBar - 1) * 16;
             const loopEndStep = sessionData.loopEndBar * 16;
             const loopDurationSteps = loopEndStep - loopStartStep;
+
             if (loopDurationSteps <= 0) return;
-            const newCurrentStep = loopStartStep + (Math.floor(now / stepDuration) % loopDurationSteps);
+            
+            const elapsedTime = now - playbackStartTime.current;
+            const elapsedSteps = Math.floor(elapsedTime / stepDuration);
+            const newCurrentStep = loopStartStep + (elapsedSteps % loopDurationSteps);
             setCurrentStep(newCurrentStep);
 
             const scrollIntoViewIfNeeded = (container: HTMLDivElement | null, stepWidth: number) => {
@@ -1007,8 +860,21 @@ const App: React.FC = () => {
             const anySolo = sessionData.tracks.some(t => t.soloed);
             sessionData.tracks.forEach(track => {
                 if (track.muted || (anySolo && !track.soloed)) return;
-                if (track.type === 'drum') track.pattern.grid.forEach((row, soundIndex) => { if (row[newCurrentStep]) audioEngine.current?.playDrum(track.pattern.sounds[soundIndex], now + 0.05, track.volume); });
-                else if (track.type === 'synth') track.notes.forEach(note => { if (note.startBeat * 4 === newCurrentStep) audioEngine.current?.playSynth(note.pitch, now + 0.05, note.duration * stepDuration, track.volume, track.instrument); });
+                if (track.type === 'drum') {
+                    if (track.pattern.grid[0].length > newCurrentStep && track.pattern.grid.some((row, i) => row[newCurrentStep])) {
+                         track.pattern.grid.forEach((row, soundIndex) => {
+                             if (row[newCurrentStep]) audioEngine.current?.playDrum(track.pattern.sounds[soundIndex], now, track.volume);
+                         });
+                    }
+                } else if (track.type === 'synth') {
+                    track.notes.forEach(note => {
+                        const noteStartStep = note.startBeat * 4;
+                        if (noteStartStep >= newCurrentStep && noteStartStep < newCurrentStep + 1) {
+                            const scheduleTime = playbackStartTime.current + ( (Math.floor(elapsedSteps / loopDurationSteps) * loopDurationSteps) + (noteStartStep - loopStartStep) ) * stepDuration;
+                            audioEngine.current?.playSynth(note.pitch, scheduleTime, note.duration * 4 * stepDuration, track.volume, track.instrument);
+                        }
+                    });
+                }
             });
         };
         const timerId = setInterval(scheduler, 50);
@@ -1048,7 +914,21 @@ const App: React.FC = () => {
         return { ...prev, tracks: newTracks };
       });
   };
-  const updateTrackProperties = (trackId: string, updatedProps: Partial<TrackType>) => setSessionData(prev => ({ ...prev, tracks: prev.tracks.map(track => track.id === trackId ? { ...track, ...updatedProps } as TrackType : track) }));
+  const updateTrackProperties = (trackId: string, updatedProps: Partial<TrackType>) => {
+      if ('instrument' in updatedProps && audioEngine.current) {
+        const instrumentName = updatedProps.instrument as SynthInstrumentType;
+        if (instrumentName && !audioEngine.current.isInstrumentLoaded(instrumentName)) {
+            setLoadingText(`${JAPANESE_INSTRUMENT_NAMES[instrumentName]}を読み込み中...`);
+            setIsLoading(true);
+            const soundfontName = SYNTH_INSTRUMENT_MAP[instrumentName];
+            audioEngine.current.loadInstrument(soundfontName).then(() => {
+                setIsLoading(false);
+                setLoadingText('');
+            });
+        }
+    }
+    setSessionData(prev => ({ ...prev, tracks: prev.tracks.map(track => track.id === trackId ? { ...track, ...updatedProps } as TrackType : track) }));
+  }
   const updateTrackPatternOrNotes = (trackId: string, newData: DrumPatternGrid | Note[]) => {
     setSessionData(prev => ({ ...prev, tracks: prev.tracks.map(track => {
         if (track.id === trackId) {
@@ -1079,7 +959,16 @@ const App: React.FC = () => {
           <div className="flex flex-col items-center justify-center h-screen bg-gray-950 text-white">
               <h1 className="text-4xl font-bold mb-4">ウェブDAW</h1>
               <p className="text-gray-400 mb-8">オーディオエンジンを起動して創作を始めましょう。</p>
-              <button onClick={initAudioEngine} className="bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-4 px-8 rounded-full shadow-lg transition-transform transform hover:scale-105 flex items-center space-x-3"><PlayIcon /><span>創作を始める</span></button>
+              <button onClick={initAudioEngine} disabled={isStarting} className="bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-4 px-8 rounded-full shadow-lg transition-transform transform hover:scale-105 flex items-center space-x-3 disabled:bg-gray-600 disabled:scale-100 disabled:cursor-wait">
+                {isStarting ? (
+                    <>
+                        <div className="w-6 h-6 border-2 border-t-white border-transparent rounded-full animate-spin"></div>
+                        <span>起動中...</span>
+                    </>
+                ) : (
+                    <><PlayIcon /><span>創作を始める</span></>
+                )}
+              </button>
           </div>
       );
   }
@@ -1090,43 +979,44 @@ const App: React.FC = () => {
   const arrangementWidth = totalSteps * STEP_WIDTH_PX;
 
   return (
-    <div className="h-screen flex flex-col bg-gray-900 text-gray-200 font-sans">
-      <header className="flex-shrink-0 flex flex-col sm:flex-row justify-between items-center p-4 border-b border-gray-800 bg-gray-950">
-          <h1 className="text-3xl font-bold text-white tracking-tight">ウェブDAW<span className="text-cyan-400">.</span></h1>
-          <div className="flex items-center space-x-4 mt-4 sm:mt-0">
-            <HelpTooltip />
-            <button onClick={() => setIsDeployModalOpen(true)} className="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-md transition duration-200">デプロイ</button>
-            <button onClick={handleShare} className="bg-cyan-500 hover:bg-cyan-600 text-white font-semibold py-2 px-4 rounded-md transition duration-200">プロジェクトを共有</button>
-          </div>
-      </header>
-      
-      <div className="flex-shrink-0 bg-gray-900 border-b border-gray-800"><Transport isPlaying={isPlaying} onPlay={play} onStop={stop} bpm={sessionData.bpm} onBpmChange={updateBPM} bars={sessionData.bars} onBarsChange={updateBars} /></div>
+    <>
+      {isLoading && <LoadingOverlay text={loadingText} />}
+      <div className="h-screen flex flex-col bg-gray-900 text-gray-200 font-sans">
+        <header className="flex-shrink-0 flex flex-col sm:flex-row justify-between items-center p-4 border-b border-gray-800 bg-gray-950">
+            <h1 className="text-3xl font-bold text-white tracking-tight">ウェブDAW<span className="text-cyan-400">.</span></h1>
+            <div className="flex items-center space-x-4 mt-4 sm:mt-0">
+              <HelpTooltip />
+              <button onClick={handleShare} className="bg-cyan-500 hover:bg-cyan-600 text-white font-semibold py-2 px-4 rounded-md transition duration-200">プロジェクトを共有</button>
+            </div>
+        </header>
+        
+        <div className="flex-shrink-0 bg-gray-900 border-b border-gray-800"><Transport isPlaying={isPlaying} onPlay={play} onStop={stop} bpm={sessionData.bpm} onBpmChange={updateBPM} bars={sessionData.bars} onBarsChange={updateBars} /></div>
 
-      <main className="flex-grow flex flex-col min-h-0">
-        <div className="flex-grow flex flex-col overflow-hidden">
-          <div className="flex-grow overflow-auto overscroll-y-contain overscroll-x-none" ref={arrangementContainerRef}>
-            <div className="relative" style={{ width: `${arrangementWidth}px`}}>
-              <div className="sticky top-0 z-20 flex bg-gray-800 border-b border-gray-700">
-                <div className="w-48 flex-shrink-0 p-2 font-semibold px-3 border-r border-gray-700 flex items-center">トラック</div>
-                <div className="flex-grow"><TimelineRuler bars={sessionData.bars} currentStep={currentStep} isPlaying={isPlaying} stepWidthPx={STEP_WIDTH_PX} loopStartBar={sessionData.loopStartBar} loopEndBar={sessionData.loopEndBar} onLoopRangeChange={updateLoopRange} arrangementContainerRef={arrangementContainerRef} /></div>
+        <main className="flex-grow flex flex-col min-h-0">
+          <div className="flex-grow flex flex-col overflow-hidden">
+            <div className="flex-grow overflow-auto overscroll-y-contain overscroll-x-none" ref={arrangementContainerRef}>
+              <div className="relative" style={{ width: `${arrangementWidth}px`}}>
+                <div className="sticky top-0 z-20 flex bg-gray-800 border-b border-gray-700 h-6">
+                  <div className="w-48 flex-shrink-0 p-2 font-semibold px-3 border-r border-gray-700 flex items-center text-sm">トラック</div>
+                  <div className="flex-grow"><TimelineRuler bars={sessionData.bars} currentStep={currentStep} isPlaying={isPlaying} stepWidthPx={STEP_WIDTH_PX} loopStartBar={sessionData.loopStartBar} loopEndBar={sessionData.loopEndBar} onLoopRangeChange={updateLoopRange} arrangementContainerRef={arrangementContainerRef} /></div>
+                </div>
+                {sessionData.tracks.map(track => <Track key={track.id} trackData={track} isSelected={track.id === selectedTrackId} onSelect={() => setSelectedTrackId(track.id)} onUpdateTrack={(props) => updateTrackProperties(track.id, props)} onDeleteTrack={() => deleteTrack(track.id)} totalSteps={totalSteps} stepWidthPx={STEP_WIDTH_PX} />)}
+                {isPlaying && <div className="absolute w-0.5 bg-red-500/90 pointer-events-none z-30" style={{ left: `calc(12rem + ${currentStep * STEP_WIDTH_PX}px)`, top: '1.5rem', height: 'calc(100% - 1.5rem)' }} />}
               </div>
-              {sessionData.tracks.map(track => <Track key={track.id} trackData={track} isSelected={track.id === selectedTrackId} onSelect={() => setSelectedTrackId(track.id)} onUpdateTrack={(props) => updateTrackProperties(track.id, props)} onDeleteTrack={() => deleteTrack(track.id)} totalSteps={totalSteps} stepWidthPx={STEP_WIDTH_PX} />)}
-              {isPlaying && <div className="absolute top-0 bottom-0 w-0.5 bg-red-500/90 pointer-events-none z-30" style={{ left: `${currentStep * STEP_WIDTH_PX}px`, height: '100%' }} />}
+            </div>
+            <div className="flex-shrink-0 p-3 flex items-center space-x-2 border-t border-gray-800 bg-gray-800">
+                <button onClick={() => addTrack('synth')} className="flex items-center space-x-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-md transition duration-200"><PlusIcon /> <span>シンセを追加</span></button>
+                <button onClick={() => addTrack('drum')} className="flex items-center space-x-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-md transition duration-200"><PlusIcon /> <span>ドラムを追加</span></button>
             </div>
           </div>
-          <div className="flex-shrink-0 p-3 flex items-center space-x-2 border-t border-gray-800 bg-gray-800">
-              <button onClick={() => addTrack('synth')} className="flex items-center space-x-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-md transition duration-200"><PlusIcon /> <span>シンセを追加</span></button>
-              <button onClick={() => addTrack('drum')} className="flex items-center space-x-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-md transition duration-200"><PlusIcon /> <span>ドラムを追加</span></button>
+          <div className="h-[45%] flex-shrink-0 border-t-2 border-gray-700 flex flex-col bg-gray-900">
+              {selectedTrack ? <DetailView key={selectedTrack.id} trackData={selectedTrack} currentStep={currentStep} isPlaying={isPlaying} onUpdatePatternOrNotes={(newData) => updateTrackPatternOrNotes(selectedTrack.id, newData)} bars={sessionData.bars} containerRef={detailContainerRef} playNotePreview={playNotePreview} playDrumPreview={playDrumPreview} /> : <div className="flex items-center justify-center h-full text-gray-500">編集するトラックを選択してください</div>}
           </div>
-        </div>
-        <div className="h-[45%] flex-shrink-0 border-t-2 border-gray-700 flex flex-col bg-gray-900">
-            {selectedTrack ? <DetailView key={selectedTrack.id} trackData={selectedTrack} currentStep={currentStep} isPlaying={isPlaying} onUpdatePatternOrNotes={(newData) => updateTrackPatternOrNotes(selectedTrack.id, newData)} bars={sessionData.bars} containerRef={detailContainerRef} playNotePreview={playNotePreview} playDrumPreview={playDrumPreview} /> : <div className="flex items-center justify-center h-full text-gray-500">編集するトラックを選択してください</div>}
-        </div>
-      </main>
+        </main>
 
-      {isShareModalOpen && <ShareModal url={shareUrl} onClose={() => setIsShareModalOpen(false)} />}
-      {isDeployModalOpen && <DeployModal sessionData={sessionData} onClose={() => setIsDeployModalOpen(false)} />}
-    </div>
+        {isShareModalOpen && <ShareModal url={shareUrl} onClose={() => setIsShareModalOpen(false)} />}
+      </div>
+    </>
   );
 };
 
