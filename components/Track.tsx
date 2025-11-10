@@ -1,8 +1,8 @@
 
 import React from 'react';
-import type { TrackType, Note, DrumPatternGrid, SynthInstrumentType } from '../types';
-import { TrashIcon } from './icons';
-import { PIANO_ROLL_NOTES, JAPANESE_INSTRUMENT_NAMES } from '../constants';
+import type { TrackType, Note, DrumPatternGrid, SynthInstrumentType } from '../types.ts';
+import { TrashIcon } from './icons.tsx';
+import { PIANO_ROLL_NOTES, JAPANESE_INSTRUMENT_NAMES } from '../constants.ts';
 
 interface TrackProps {
   trackData: TrackType;

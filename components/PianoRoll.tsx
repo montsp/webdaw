@@ -1,6 +1,7 @@
+
 import React, { useState, useRef } from 'react';
-import type { Note } from '../types';
-import { PIANO_ROLL_NOTES, JAPANESE_NOTE_NAMES } from '../constants';
+import type { Note } from '../types.ts';
+import { PIANO_ROLL_NOTES, JAPANESE_NOTE_NAMES } from '../constants.ts';
 
 interface PianoRollProps {
   notes: Note[];

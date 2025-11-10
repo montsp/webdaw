@@ -1,5 +1,5 @@
 
-import type { DrumInstrument, SynthInstrumentType } from '../types';
+import type { DrumInstrument, SynthInstrumentType } from '../types.ts';
 
 const createKick = (ctx: AudioContext, time: number, destination: AudioNode) => {
     const osc = ctx.createOscillator();

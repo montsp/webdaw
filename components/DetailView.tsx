@@ -1,11 +1,11 @@
 
 import React, { useState } from 'react';
-import type { TrackType, Note, DrumPatternGrid } from '../types';
-import { PianoRoll } from './PianoRoll';
-import { DrumSequencer } from './DrumSequencer';
-import { JAPANESE_DRUM_NAMES, PIANO_ROLL_NOTES, JAPANESE_NOTE_NAMES } from '../constants';
-import { PianoKeyboard } from './PianoKeyboard';
-import { GuitarFretboard } from './GuitarFretboard';
+import type { TrackType, Note, DrumPatternGrid } from '../types.ts';
+import { PianoRoll } from './PianoRoll.tsx';
+import { DrumSequencer } from './DrumSequencer.tsx';
+import { JAPANESE_DRUM_NAMES, PIANO_ROLL_NOTES, JAPANESE_NOTE_NAMES } from '../constants.ts';
+import { PianoKeyboard } from './PianoKeyboard.tsx';
+import { GuitarFretboard } from './GuitarFretboard.tsx';
 
 interface DetailViewProps {
   trackData: TrackType;

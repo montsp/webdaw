@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { PIANO_ROLL_NOTES } from '../constants';
+import { PIANO_ROLL_NOTES } from '../constants.ts';
 
 interface PianoKeyboardProps {
   playNotePreview: (pitch: string) => void;

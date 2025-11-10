@@ -1,5 +1,6 @@
+
 import React from 'react';
-import type { DrumPattern } from '../types';
+import type { DrumPattern } from '../types.ts';
 
 interface DrumSequencerProps {
   pattern: DrumPattern;

@@ -1,16 +1,17 @@
+
 import React, { useState, useEffect, useRef } from 'react';
-import { Transport } from './components/Transport';
-import { ShareModal } from './components/ShareModal';
-import { DeployModal } from './components/DeployModal';
-import { HelpTooltip } from './components/HelpTooltip';
-import { DEFAULT_SESSION_DATA } from './constants';
-import { decodeSessionData, encodeSessionData } from './utils/dataEncoder';
-import { AudioEngine } from './audio/AudioEngine';
-import type { SessionData, Note, DrumPatternGrid, TrackType } from './types';
-import { PlayIcon, PlusIcon, DeployIcon } from './components/icons';
-import { Track } from './components/Track';
-import { DetailView } from './components/DetailView';
-import { TimelineRuler } from './components/TimelineRuler';
+import { Transport } from './components/Transport.tsx';
+import { ShareModal } from './components/ShareModal.tsx';
+import { DeployModal } from './components/DeployModal.tsx';
+import { HelpTooltip } from './components/HelpTooltip.tsx';
+import { DEFAULT_SESSION_DATA } from './constants.ts';
+import { decodeSessionData, encodeSessionData } from './utils/dataEncoder.ts';
+import { AudioEngine } from './audio/AudioEngine.ts';
+import type { SessionData, Note, DrumPatternGrid, TrackType } from './types.ts';
+import { PlayIcon, PlusIcon, DeployIcon } from './components/icons.tsx';
+import { Track } from './components/Track.tsx';
+import { DetailView } from './components/DetailView.tsx';
+import { TimelineRuler } from './components/TimelineRuler.tsx';
 
 const getInitialData = (): SessionData => {
     // 1. Check for injected data (for deployed version)

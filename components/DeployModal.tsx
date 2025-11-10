@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import type { SessionData } from '../types';
+import type { SessionData } from '../types.ts';
 
 interface DeployModalProps {
   sessionData: SessionData;

@@ -1,5 +1,5 @@
 
-import type { SessionData, DrumInstrument, SynthInstrumentType } from './types';
+import type { SessionData, DrumInstrument, SynthInstrumentType } from './types.ts';
 
 const generatePianoRollData = () => {
     const notes: string[] = [];
