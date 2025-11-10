@@ -2,13 +2,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Transport } from './components/Transport.tsx';
 import { ShareModal } from './components/ShareModal.tsx';
-import { DeployModal } from './components/DeployModal.tsx';
 import { HelpTooltip } from './components/HelpTooltip.tsx';
 import { DEFAULT_SESSION_DATA } from './constants.ts';
 import { decodeSessionData, encodeSessionData } from './utils/dataEncoder.ts';
 import { AudioEngine } from './audio/AudioEngine.ts';
-import type { SessionData, Note, DrumPatternGrid, TrackType } from './types.ts';
-import { PlayIcon, PlusIcon, DeployIcon } from './components/icons.tsx';
+// FIX: Import SynthTrack and DrumTrack for more specific type assertions.
+import type { SessionData, Note, DrumPatternGrid, TrackType, SynthTrack, DrumTrack } from './types.ts';
+import { PlayIcon, PlusIcon } from './components/icons.tsx';
 import { Track } from './components/Track.tsx';
 import { DetailView } from './components/DetailView.tsx';
 import { TimelineRuler } from './components/TimelineRuler.tsx';
@@ -48,7 +48,6 @@ const App: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [currentStep, setCurrentStep] = useState<number>(0);
   const [isShareModalOpen, setIsShareModalOpen] = useState<boolean>(false);
-  const [isDeployModalOpen, setIsDeployModalOpen] = useState<boolean>(false);
   const [shareUrl, setShareUrl] = useState<string>('');
   const [isAudioEngineReady, setIsAudioEngineReady] = useState(false);
   const [selectedTrackId, setSelectedTrackId] = useState<string | null>(getInitialData().tracks[0]?.id ?? null);
@@ -216,7 +215,7 @@ const App: React.FC = () => {
               muted: false,
               soloed: false,
               notes: [],
-          };
+          } as SynthTrack;
       } else {
           newTrack = {
               id: newId,
@@ -229,7 +228,7 @@ const App: React.FC = () => {
                   sounds: ['kick', 'snare', 'hihat', 'clap'],
                   grid: Array(4).fill(null).map(() => Array(sessionData.bars * 16).fill(false)),
               },
-          };
+          } as DrumTrack;
       }
       
       setSessionData(prev => ({
@@ -256,7 +255,10 @@ const App: React.FC = () => {
       setSessionData(prev => ({
           ...prev,
           tracks: prev.tracks.map(track =>
-              track.id === trackId ? { ...track, ...updatedProps } : track
+              // FIX: The spread operator was creating a type that TS couldn't prove was a valid TrackType.
+              // This polluted the state type, causing downstream errors. A type assertion fixes this,
+              // relying on the UI logic to only pass valid properties for a given track type.
+              track.id === trackId ? { ...track, ...updatedProps } as TrackType : track
           )
       }));
   };
@@ -281,10 +283,6 @@ const App: React.FC = () => {
       const url = encodeSessionData(sessionData);
       setShareUrl(url);
       setIsShareModalOpen(true);
-  };
-
-  const handleDeploy = () => {
-    setIsDeployModalOpen(true);
   };
 
   const playNotePreview = (pitch: string) => {
@@ -347,13 +345,6 @@ const App: React.FC = () => {
           </h1>
           <div className="flex items-center space-x-4 mt-4 sm:mt-0">
             <HelpTooltip />
-            <button
-                onClick={handleDeploy}
-                className="flex items-center space-x-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-md transition duration-200"
-            >
-                <DeployIcon />
-                <span>デプロイ</span>
-            </button>
             <button
                 onClick={handleShare}
                 className="bg-cyan-500 hover:bg-cyan-600 text-white font-semibold py-2 px-4 rounded-md transition duration-200"
@@ -458,12 +449,6 @@ const App: React.FC = () => {
               url={shareUrl}
               onClose={() => setIsShareModalOpen(false)}
           />
-      )}
-      {isDeployModalOpen && (
-        <DeployModal
-          sessionData={sessionData}
-          onClose={() => setIsDeployModalOpen(false)}
-        />
       )}
     </div>
   );
