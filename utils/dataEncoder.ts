@@ -1,5 +1,5 @@
 
-import type { SessionData } from '../types.ts';
+import type { SessionData } from './types.ts';
 
 declare const pako: any;
 

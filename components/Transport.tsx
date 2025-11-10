@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { PlayIcon, StopIcon } from './icons';
+import { PlayIcon, StopIcon } from './icons.tsx';
 
 interface TransportProps {
   isPlaying: boolean;

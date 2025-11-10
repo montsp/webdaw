@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { HelpIcon } from './icons';
+import { HelpIcon } from './icons.tsx';
 
 export const HelpTooltip: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);

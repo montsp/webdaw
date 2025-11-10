@@ -30,7 +30,6 @@ const getNoteForStringAndFret = (stringIndex: number, fret: number): string | nu
   return null;
 };
 
-// FIX: Corrected typo from GuitarFletboardProps to GuitarFretboardProps
 export const GuitarFretboard: React.FC<GuitarFretboardProps> = ({ playNotePreview }) => {
 
   const handleFretClick = (stringIndex: number, fret: number) => {
