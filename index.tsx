@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom/client';
 
@@ -59,6 +58,14 @@ const PlayIcon: React.FC = () => (
     <polygon points="5 3 19 12 5 21 5 3"></polygon>
   </svg>
 );
+
+const PauseIcon: React.FC = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="6" y="4" width="4" height="16"></rect>
+    <rect x="14" y="4" width="4" height="16"></rect>
+  </svg>
+);
+
 
 const StopIcon: React.FC = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -492,11 +499,13 @@ const InstrumentSelectorModal: React.FC<{ isOpen: boolean, onClose: () => void, 
 };
 
 
-const Transport: React.FC<{ isPlaying: boolean; onPlay: () => void; onStop: () => void; bpm: number; onBpmChange: (bpm: number) => void; bars: number; onBarsChange: (bars: number) => void; }> = ({ isPlaying, onPlay, onStop, bpm, onBpmChange, bars, onBarsChange }) => (
+const Transport: React.FC<{ isPlaying: boolean; isPaused: boolean; onPlay: () => void; onPause: () => void; onStop: () => void; bpm: number; onBpmChange: (bpm: number) => void; bars: number; onBarsChange: (bars: number) => void; }> = ({ isPlaying, isPaused, onPlay, onPause, onStop, bpm, onBpmChange, bars, onBarsChange }) => (
     <div className="bg-gray-900 p-4 rounded-lg flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0 sm:space-x-6 shadow-md">
       <div className="flex items-center space-x-2">
-        <button onClick={onPlay} disabled={isPlaying} className="bg-gray-800 hover:bg-green-600 disabled:bg-gray-700 disabled:cursor-not-allowed p-3 rounded-full text-white transition-colors duration-200" aria-label="再生"><PlayIcon /></button>
-        <button onClick={onStop} disabled={!isPlaying} className="bg-gray-800 hover:bg-red-600 disabled:bg-gray-700 disabled:cursor-not-allowed p-3 rounded-full text-white transition-colors duration-200" aria-label="停止"><StopIcon /></button>
+        <button onClick={isPlaying ? onPause : onPlay} className="bg-gray-800 hover:bg-green-600 p-3 rounded-full text-white transition-colors duration-200" aria-label={isPlaying ? "一時停止" : "再生"}>
+            {isPlaying ? <PauseIcon /> : <PlayIcon />}
+        </button>
+        <button onClick={onStop} disabled={!isPlaying && !isPaused} className="bg-gray-800 hover:bg-red-600 disabled:bg-gray-700 disabled:cursor-not-allowed p-3 rounded-full text-white transition-colors duration-200" aria-label="停止"><StopIcon /></button>
       </div>
       <div className="flex items-center space-x-3 w-full sm:w-auto">
         <label htmlFor="bpm" className="font-medium text-gray-400">BPM</label>
@@ -621,7 +630,7 @@ const PianoRoll: React.FC<{ notes: Note[]; bars: number; currentStep: number; is
           );
         })}
       </div>
-      {isPlaying && <div className="absolute top-0 bottom-0 w-1 bg-red-500/70 pointer-events-none" style={{ left: `${currentStep * STEP_WIDTH_REM}rem` }} />}
+      {(isPlaying || currentStep > 0) && <div className="absolute top-0 bottom-0 w-1 bg-red-500/70 pointer-events-none" style={{ left: `${currentStep * STEP_WIDTH_REM}rem` }} />}
     </div>
   );
 };
@@ -646,42 +655,66 @@ const DrumSequencer: React.FC<{ pattern: DrumPattern; bars: number; currentStep:
           </React.Fragment>
         ))}
         </div>
-        {isPlaying && <div className="absolute top-0 bottom-0 w-1 bg-red-500/70 pointer-events-none" style={{ left: `${currentStep * STEP_WIDTH_REM}rem` }} />}
+        {(isPlaying || currentStep > 0) && <div className="absolute top-0 bottom-0 w-1 bg-red-500/70 pointer-events-none" style={{ left: `${currentStep * STEP_WIDTH_REM}rem` }} />}
     </div>
   );
 };
 
 const PianoKeyboard: React.FC<{ playNotePreview: (pitch: string) => void; }> = ({ playNotePreview }) => {
-  const notes = PIANO_ROLL_NOTES.slice().reverse();
-  let whiteKeyX = 0;
-  const WHITE_KEY_WIDTH = 24, WHITE_KEY_HEIGHT = 120, BLACK_KEY_WIDTH = 14, BLACK_KEY_HEIGHT = 80;
-  const keyElements = notes.map((note) => {
-    const isBlack = note.includes('#');
-    if (isBlack) {
-      const prevWhiteKeyX = whiteKeyX - WHITE_KEY_WIDTH;
-      return { note, isBlack, x: prevWhiteKeyX + WHITE_KEY_WIDTH - (BLACK_KEY_WIDTH / 2), y: 0, width: BLACK_KEY_WIDTH, height: BLACK_KEY_HEIGHT };
-    } else {
-      const key = { note, isBlack, x: whiteKeyX, y: 0, width: WHITE_KEY_WIDTH, height: WHITE_KEY_HEIGHT };
-      whiteKeyX += WHITE_KEY_WIDTH;
-      return key;
-    }
-  });
-  const totalWidth = whiteKeyX;
-  const whiteKeys = keyElements.filter(k => !k.isBlack);
-  const blackKeys = keyElements.filter(k => k.isBlack);
-  return (
-    <div className="overflow-x-auto bg-gray-900 h-32 flex-shrink-0 border-t-2 border-gray-700 select-none">
-      <svg width={totalWidth} height={WHITE_KEY_HEIGHT} className="h-full">
-        <g>{whiteKeys.map(({ note, x, y, width, height }) => <rect key={note} x={x} y={y} width={width} height={height} fill="white" stroke="black" strokeWidth="1" className="cursor-pointer active:fill-cyan-300" onPointerDown={() => playNotePreview(note)} />)}</g>
-        <g>{blackKeys.map(({ note, x, y, width, height }) => <rect key={note} x={x} y={y} width={width} height={height} fill="black" stroke="black" strokeWidth="1" className="cursor-pointer active:fill-gray-600" onPointerDown={(e) => { e.stopPropagation(); playNotePreview(note); }} />)}</g>
-      </svg>
-    </div>
-  );
+    const [octave, setOctave] = useState(4);
+    const [showNames, setShowNames] = useState(true);
+
+    const WHITE_KEY_WIDTH_PERCENT = 100 / 14; // 2 octaves = 14 white keys
+    
+    const whiteKeysFor2Octaves = ['C','D','E','F','G','A','B','C','D','E','F','G','A','B'];
+    const blackKeysFor2Octaves = [
+        { note: 'C#', pos: 0 }, { note: 'D#', pos: 1 }, { note: 'F#', pos: 3 }, { note: 'G#', pos: 4 }, { note: 'A#', pos: 5 },
+        { note: 'C#', pos: 7 }, { note: 'D#', pos: 8 }, { note: 'F#', pos: 10 }, { note: 'G#', pos: 11 }, { note: 'A#', pos: 12 },
+    ];
+
+    return (
+        <div className="w-full h-full flex flex-col items-center justify-center p-4 bg-gray-900 select-none">
+            <div className="flex items-center space-x-4 mb-4">
+                <button onClick={() => setOctave(o => Math.max(0, o - 1))} className="px-4 py-2 bg-gray-700 rounded-lg font-bold text-lg hover:bg-gray-600 transition-colors">◀</button>
+                <div className="text-white font-semibold text-center w-32">オクターブ: {octave}</div>
+                <button onClick={() => setOctave(o => Math.min(8, o + 1))} className="px-4 py-2 bg-gray-700 rounded-lg font-bold text-lg hover:bg-gray-600 transition-colors">▶</button>
+                 <div className="flex items-center space-x-2">
+                    <label htmlFor="show-names" className="text-white text-sm">音名表示</label>
+                    <button onClick={() => setShowNames(s => !s)} className={`w-12 h-6 rounded-full p-1 transition-colors ${showNames ? 'bg-cyan-500' : 'bg-gray-600'}`}>
+                        <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform ${showNames ? 'translate-x-6' : ''}`} />
+                    </button>
+                </div>
+            </div>
+            <div className="relative w-full flex-grow flex">
+                {whiteKeysFor2Octaves.map((noteBase, i) => {
+                    const currentOctave = octave + Math.floor(i / 7);
+                    const noteName = `${noteBase}${currentOctave}`;
+                    return (
+                        <div key={i} onPointerDown={() => playNotePreview(noteName)} style={{ left: `${i * WHITE_KEY_WIDTH_PERCENT}%`, width: `${WHITE_KEY_WIDTH_PERCENT}%` }} className="absolute top-0 h-full bg-white border-l border-b border-gray-400 rounded-b-md active:bg-cyan-300 flex items-end justify-center pb-2 transition-colors">
+                            {showNames && <span className="text-gray-600 text-xs font-semibold select-none pointer-events-none">{JAPANESE_NOTE_NAMES[noteName]}</span>}
+                        </div>
+                    );
+                })}
+                {blackKeysFor2Octaves.map(({ note, pos }, i) => {
+                    const currentOctave = octave + Math.floor(pos / 7);
+                    const noteName = `${note}${currentOctave}`;
+                    const leftPosition = (pos + 1) * WHITE_KEY_WIDTH_PERCENT - (WHITE_KEY_WIDTH_PERCENT * 0.3);
+                    return (
+                        <div key={i} onPointerDown={(e) => { e.stopPropagation(); playNotePreview(noteName); }} className="absolute h-[60%] w-[4%] bg-gray-900 border-2 border-gray-700 rounded-b-md z-10 active:bg-cyan-600 transition-colors" style={{ left: `${leftPosition}%`, width: `${WHITE_KEY_WIDTH_PERCENT * 0.6}%` }} />
+                    );
+                })}
+            </div>
+        </div>
+    );
 };
 
 const GuitarFretboard: React.FC<{ playNotePreview: (pitch: string) => void; }> = ({ playNotePreview }) => {
-  const NUM_FRETS = 24, FRET_WIDTH = 80, STRING_SPACING = 25;
-  const FRETBOARD_HEIGHT = 5 * STRING_SPACING + 20, FRETBOARD_WIDTH = (NUM_FRETS + 1) * FRET_WIDTH;
+  const [fretOffset, setFretOffset] = useState(0);
+  const FRETS_TO_SHOW = 12;
+  const TOTAL_FRETS = 24;
+  const FRET_WIDTH = 80, STRING_SPACING = 30;
+  const FRETBOARD_HEIGHT = 5 * STRING_SPACING + 20;
+  const FRETBOARD_WIDTH = (FRETS_TO_SHOW + 1) * FRET_WIDTH;
   const INLAY_FRETS = [3, 5, 7, 9, 12, 15, 17, 19, 21, 24];
   const ALL_NOTES = PIANO_ROLL_NOTES.slice().reverse(); 
   const OPEN_STRINGS = ['E4', 'B3', 'G3', 'D3', 'A2', 'E2'];
@@ -697,69 +730,176 @@ const GuitarFretboard: React.FC<{ playNotePreview: (pitch: string) => void; }> =
     if (note) playNotePreview(note);
   };
   return (
-    <div className="overflow-x-auto bg-gray-900 h-48 flex-shrink-0 border-t-2 border-gray-700 select-none flex items-center">
-      <svg width={FRETBOARD_WIDTH} height={FRETBOARD_HEIGHT} style={{ minWidth: FRETBOARD_WIDTH }}>
-        <rect x="0" y="0" width={FRETBOARD_WIDTH} height={FRETBOARD_HEIGHT} fill="#6B462A" />
-        {Array.from({ length: NUM_FRETS + 1 }).map((_, i) => (
-          <g key={`fret-${i}`}>
-            <line x1={i * FRET_WIDTH + FRET_WIDTH / 2} y1="10" x2={i * FRET_WIDTH + FRET_WIDTH / 2} y2={FRETBOARD_HEIGHT - 10} stroke={i === 0 ? "#DDD" : "#AAA"} strokeWidth={i === 0 ? 8 : 4} />
-            {i > 0 && <text x={i * FRET_WIDTH} y={FRETBOARD_HEIGHT - 2} textAnchor="middle" fill="#CCC" fontSize="10">{i}</text>}
-          </g>
-        ))}
-        {INLAY_FRETS.map(fret => fret === 12 || fret === 24 ? (<g key={`inlay-${fret}`}><circle cx={(fret - 1) * FRET_WIDTH + FRET_WIDTH} cy={FRETBOARD_HEIGHT / 2 - STRING_SPACING} r="6" fill="#E0E0E0" opacity="0.7" /><circle cx={(fret - 1) * FRET_WIDTH + FRET_WIDTH} cy={FRETBOARD_HEIGHT / 2 + STRING_SPACING} r="6" fill="#E0E0E0" opacity="0.7" /></g>) : (<circle key={`inlay-${fret}`} cx={(fret - 1) * FRET_WIDTH + FRET_WIDTH} cy={FRETBOARD_HEIGHT / 2} r="6" fill="#E0E0E0" opacity="0.7" />))}
-        {OPEN_STRINGS.map((_, stringIndex) => (
-          <g key={`string-group-${stringIndex}`}>
-            <line x1="0" y1={10 + stringIndex * STRING_SPACING} x2={FRETBOARD_WIDTH} y2={10 + stringIndex * STRING_SPACING} stroke="#555" strokeWidth={1 + stringIndex * 0.5} />
-             {Array.from({ length: NUM_FRETS + 1 }).map((_, fretIndex) => <rect key={`clickable-${stringIndex}-${fretIndex}`} x={fretIndex * FRET_WIDTH} y={stringIndex * STRING_SPACING} width={FRET_WIDTH} height={STRING_SPACING} fill="transparent" className="cursor-pointer hover:fill-cyan-500/30 active:fill-cyan-500/50" onClick={() => handleFretClick(stringIndex, fretIndex)} />)}
-          </g>
-        ))}
-      </svg>
+    <div className="w-full flex flex-col items-center justify-center bg-gray-900 h-full p-4 select-none">
+        <div className="w-full flex justify-center items-center mb-2">
+            <button onClick={() => setFretOffset(o => Math.max(0, o - FRETS_TO_SHOW))} disabled={fretOffset === 0} className="px-4 py-2 bg-gray-700 rounded-lg font-bold text-lg hover:bg-gray-600 disabled:opacity-50 transition-colors">◀</button>
+            <span className="text-white mx-4 font-semibold">フレット: {fretOffset + 1} - {fretOffset + FRETS_TO_SHOW}</span>
+            <button onClick={() => setFretOffset(o => Math.min(TOTAL_FRETS - FRETS_TO_SHOW, o + FRETS_TO_SHOW))} disabled={fretOffset >= TOTAL_FRETS - FRETS_TO_SHOW} className="px-4 py-2 bg-gray-700 rounded-lg font-bold text-lg hover:bg-gray-600 disabled:opacity-50 transition-colors">▶</button>
+        </div>
+        <div className="w-full overflow-hidden flex-grow flex items-center justify-center">
+            <svg width="100%" height="100%" viewBox={`0 0 ${FRETBOARD_WIDTH} ${FRETBOARD_HEIGHT}`}>
+                <rect x="0" y="0" width={FRETBOARD_WIDTH} height={FRETBOARD_HEIGHT} fill="#6B462A" />
+                {Array.from({ length: FRETS_TO_SHOW + 1 }).map((_, i) => {
+                    const currentFret = i + fretOffset;
+                    return (
+                        <g key={`fret-${i}`}>
+                            <line x1={i * FRET_WIDTH + FRET_WIDTH / 2} y1="10" x2={i * FRET_WIDTH + FRET_WIDTH / 2} y2={FRETBOARD_HEIGHT - 10} stroke={currentFret === 0 ? "#DDD" : "#AAA"} strokeWidth={currentFret === 0 ? 8 : 4} />
+                            {currentFret > 0 && <text x={i * FRET_WIDTH} y={FRETBOARD_HEIGHT - 2} textAnchor="middle" fill="#CCC" fontSize="10">{currentFret}</text>}
+                        </g>
+                    )
+                })}
+                {INLAY_FRETS.filter(f => f > fretOffset && f <= fretOffset + FRETS_TO_SHOW).map(fret => {
+                    const displayFret = fret - fretOffset;
+                    const isDouble = fret === 12 || fret === 24;
+                    return isDouble ? (<g key={`inlay-${fret}`}><circle cx={(displayFret - 1) * FRET_WIDTH + FRET_WIDTH} cy={FRETBOARD_HEIGHT / 2 - STRING_SPACING} r="6" fill="#E0E0E0" opacity="0.7" /><circle cx={(displayFret - 1) * FRET_WIDTH + FRET_WIDTH} cy={FRETBOARD_HEIGHT / 2 + STRING_SPACING} r="6" fill="#E0E0E0" opacity="0.7" /></g>) : (<circle key={`inlay-${fret}`} cx={(displayFret - 1) * FRET_WIDTH + FRET_WIDTH} cy={FRETBOARD_HEIGHT / 2} r="6" fill="#E0E0E0" opacity="0.7" />)
+                })}
+                {OPEN_STRINGS.map((_, stringIndex) => (
+                <g key={`string-group-${stringIndex}`}>
+                    <line x1="0" y1={10 + stringIndex * STRING_SPACING} x2={FRETBOARD_WIDTH} y2={10 + stringIndex * STRING_SPACING} stroke="#ddd" strokeWidth={1 + stringIndex * 0.5} />
+                    {Array.from({ length: FRETS_TO_SHOW + 1 }).map((_, fretIndex) => <rect key={`clickable-${stringIndex}-${fretIndex}`} x={fretIndex * FRET_WIDTH} y={stringIndex * STRING_SPACING} width={FRET_WIDTH} height={STRING_SPACING} fill="transparent" className="cursor-pointer hover:fill-cyan-500/30 active:fill-cyan-500/50" onClick={() => handleFretClick(stringIndex, fretIndex + fretOffset)} />)}
+                </g>
+                ))}
+            </svg>
+        </div>
     </div>
   );
 };
 
 const DrumPadView: React.FC<{ sounds: DrumInstrument[], playDrumPreview: (soundIndex: number) => void }> = ({ sounds, playDrumPreview }) => {
-    const padLayout = [
-        { name: 'crash', cx: 120, cy: 110, r: 80, index: sounds.indexOf('crash') },
-        { name: 'ride', cx: 480, cy: 120, r: 90, index: sounds.indexOf('ride') },
-        { name: 'tomHigh', cx: 250, cy: 100, r: 50, index: sounds.indexOf('tomHigh') },
-        { name: 'tomMid', cx: 370, cy: 110, r: 55, index: sounds.indexOf('tomMid') },
-        { name: 'snare', cx: 180, cy: 300, r: 70, index: sounds.indexOf('snare') },
-        { name: 'kick', cx: 320, cy: 300, r: 80, index: sounds.indexOf('kick') },
-        { name: 'tomLow', cx: 460, cy: 290, r: 65, index: sounds.indexOf('tomLow') },
-        { name: 'hihatClosed', cx: 500, cy: 420, r: 60, index: sounds.indexOf('hihatClosed') },
-        { name: 'hihatOpen', cx: 80, cy: 420, r: 60, index: sounds.indexOf('hihatOpen') },
-    ];
-
-    const Pad: React.FC<{ pad: any }> = ({ pad }) => {
-        if (pad.index === -1) return null;
-        return (
-            <g onPointerDown={() => playDrumPreview(pad.index)} className="cursor-pointer group">
-                <circle cx={pad.cx} cy={pad.cy} r={pad.r} fill="#383838" stroke="#535353" strokeWidth="4" className="transition-all origin-center group-active:fill-cyan-500 group-active:stroke-cyan-400 group-active:r-[97%] " />
-                <text x={pad.cx} y={pad.cy} textAnchor="middle" dy=".3em" fill="#E5E7EB" className="font-semibold select-none pointer-events-none" fontSize={pad.r / 3}>{JAPANESE_DRUM_NAMES[pad.name as DrumInstrument]}</text>
-            </g>
-        );
-    };
+    const DrumPart: React.FC<{ name: DrumInstrument, label: string, onClick: () => void, children: React.ReactNode }> = ({ name, label, onClick, children }) => (
+        <g onPointerDown={onClick} className="cursor-pointer group">
+            {children}
+            <text textAnchor="middle" fill="#E5E7EB" className="font-semibold select-none pointer-events-none text-shadow" style={{textShadow: '1px 1px 2px black'}}>{label}</text>
+        </g>
+    );
 
     return (
         <div className="w-full h-full flex items-center justify-center p-4 bg-gray-900">
-            <svg viewBox="0 0 600 520" className="w-full h-full max-w-3xl max-h-[520px]">
-                {padLayout.map(pad => <Pad key={pad.name} pad={pad} />)}
+            <svg viewBox="0 0 800 500" className="w-full h-full max-w-4xl max-h-[500px]">
+                <defs>
+                    <radialGradient id="cymbalGradient" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stopColor="#d4af37" />
+                        <stop offset="90%" stopColor="#b8860b" />
+                        <stop offset="100%" stopColor="#805500" />
+                    </radialGradient>
+                    <radialGradient id="drumGradient" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stopColor="#f5f5f5" />
+                        <stop offset="85%" stopColor="#e8e8e8" />
+                        <stop offset="100%" stopColor="#cccccc" />
+                    </radialGradient>
+                </defs>
+                <DrumPart name="crash" label="クラッシュ" onClick={() => playDrumPreview(sounds.indexOf('crash'))}>
+                    <ellipse cx="150" cy="130" rx="140" ry="50" fill="url(#cymbalGradient)" className="transition-transform group-active:scale-95 origin-center"/>
+                    <text x="150" y="135" fontSize="22">クラッシュ</text>
+                </DrumPart>
+                <DrumPart name="ride" label="ライド" onClick={() => playDrumPreview(sounds.indexOf('ride'))}>
+                    <ellipse cx="650" cy="140" rx="160" ry="60" fill="url(#cymbalGradient)" className="transition-transform group-active:scale-95 origin-center"/>
+                    <text x="650" y="145" fontSize="24">ライド</text>
+                </DrumPart>
+                <DrumPart name="hihatClosed" label="ハイハット" onClick={() => playDrumPreview(sounds.indexOf('hihatClosed'))}>
+                     <ellipse cx="130" cy="310" rx="110" ry="40" fill="url(#cymbalGradient)" className="transition-transform group-active:scale-95 origin-center"/>
+                    <text x="130" y="315" fontSize="20">ハイハット</text>
+                </DrumPart>
+
+                <DrumPart name="tomHigh" label="ハイタム" onClick={() => playDrumPreview(sounds.indexOf('tomHigh'))}>
+                    <ellipse cx="330" cy="140" rx="80" ry="70" fill="url(#drumGradient)" stroke="#888" strokeWidth="10" />
+                    <text x="330" y="145" fontSize="18">ハイタム</text>
+                </DrumPart>
+                <DrumPart name="tomMid" label="ミドルタム" onClick={() => playDrumPreview(sounds.indexOf('tomMid'))}>
+                    <ellipse cx="490" cy="145" rx="85" ry="75" fill="url(#drumGradient)" stroke="#888" strokeWidth="10" />
+                    <text x="490" y="150" fontSize="18">ミドルタム</text>
+                </DrumPart>
+                <DrumPart name="tomLow" label="フロアタム" onClick={() => playDrumPreview(sounds.indexOf('tomLow'))}>
+                    <ellipse cx="640" cy="330" rx="100" ry="90" fill="url(#drumGradient)" stroke="#888" strokeWidth="12" />
+                    <text x="640" y="335" fontSize="22">フロアタム</text>
+                </DrumPart>
+                
+                <DrumPart name="snare" label="スネア" onClick={() => playDrumPreview(sounds.indexOf('snare'))}>
+                    <ellipse cx="290" cy="320" rx="105" ry="95" fill="url(#drumGradient)" stroke="#aaa" strokeWidth="12" />
+                    <text x="290" y="325" fontSize="24">スネア</text>
+                </DrumPart>
+                
+                <DrumPart name="kick" label="キック" onClick={() => playDrumPreview(sounds.indexOf('kick'))}>
+                    <ellipse cx="460" cy="330" rx="130" ry="120" fill="#222" stroke="#444" strokeWidth="15"/>
+                    <ellipse cx="460" cy="330" rx="110" ry="100" fill="url(#drumGradient)" stroke="#888" strokeWidth="10" />
+                    <text x="460" y="335" fontSize="28">キック</text>
+                </DrumPart>
             </svg>
         </div>
     );
 };
 
-const StringView: React.FC<{}> = () => (
-    <div className="w-full h-full flex items-center justify-center p-4 bg-gray-900 text-gray-500">
-        弦楽器エディター (近日公開)
-    </div>
-);
-const WindView: React.FC<{}> = () => (
-    <div className="w-full h-full flex items-center justify-center p-4 bg-gray-900 text-gray-500">
-        管楽器エディター (近日公開)
-    </div>
-);
+const StringView: React.FC<{ playNotePreview: (pitch: string) => void; }> = ({ playNotePreview }) => {
+    const NUM_POSITIONS = 12; // 1 octave
+    const STRING_SPACING = 40;
+    const FINGERBOARD_WIDTH = 600, FINGERBOARD_HEIGHT = 4 * STRING_SPACING;
+    const POSITION_WIDTH = FINGERBOARD_WIDTH / NUM_POSITIONS;
+    const OPEN_STRINGS = ['G3', 'D4', 'A4', 'E5']; // Violin
+    const ALL_NOTES = PIANO_ROLL_NOTES.slice().reverse(); 
+
+    const getNote = (stringIndex: number, position: number) => {
+        const openStringNote = OPEN_STRINGS[stringIndex];
+        const openStringIndex = ALL_NOTES.indexOf(openStringNote);
+        if (openStringIndex === -1) return null;
+        const noteIndex = openStringIndex + position;
+        return noteIndex < ALL_NOTES.length ? ALL_NOTES[noteIndex] : null;
+    }
+
+    return (
+        <div className="w-full h-full flex items-center justify-center p-4 bg-gray-900 text-gray-400 select-none">
+            <svg width={FINGERBOARD_WIDTH} height={FINGERBOARD_HEIGHT} className="bg-[#6B462A] rounded-lg">
+                {OPEN_STRINGS.map((_, stringIndex) => (
+                    <g key={stringIndex}>
+                        <line x1="0" y1={STRING_SPACING / 2 + stringIndex * STRING_SPACING} x2={FINGERBOARD_WIDTH} y2={STRING_SPACING / 2 + stringIndex * STRING_SPACING} stroke="#ddd" strokeWidth={4 - stringIndex} />
+                        {Array.from({ length: NUM_POSITIONS }).map((_, posIndex) => {
+                            const note = getNote(stringIndex, posIndex + 1);
+                            return (
+                                <rect key={`${stringIndex}-${posIndex}`}
+                                    x={posIndex * POSITION_WIDTH}
+                                    y={stringIndex * STRING_SPACING}
+                                    width={POSITION_WIDTH}
+                                    height={STRING_SPACING}
+                                    className="fill-transparent hover:fill-cyan-500/30 active:fill-cyan-500/50 cursor-pointer"
+                                    onPointerDown={() => note && playNotePreview(note)}
+                                />
+                            );
+                        })}
+                    </g>
+                ))}
+            </svg>
+        </div>
+    );
+};
+
+const WindView: React.FC<{ playNotePreview: (pitch: string) => void; }> = ({ playNotePreview }) => {
+    const [valves, setValves] = useState([false, false, false]);
+
+    const valveNoteMap: { [key: string]: string } = {
+        '000': 'C4', '001': 'B3', '010': 'A#3', '011': 'A3', '100': 'G#3', '101': 'G3', '110': 'F#3', '111': 'F3'
+    };
+
+    const toggleValve = (index: number) => {
+        const newVaves = [...valves] as [boolean, boolean, boolean];
+        newVaves[index] = !newVaves[index];
+        setValves(newVaves);
+        const valveString = newVaves.map(v => v ? '1' : '0').join('');
+        const note = valveNoteMap[valveString];
+        if (note) playNotePreview(note);
+    };
+
+    return (
+        <div className="w-full h-full flex items-center justify-center p-4 bg-gray-900 text-gray-400 select-none">
+            <div className="flex space-x-8">
+                {valves.map((isPressed, i) => (
+                    <div key={i} className="flex flex-col items-center">
+                        <div className="w-8 h-8 bg-gray-600 rounded-t-md" />
+                        <button onPointerDown={() => toggleValve(i)} className={`w-12 h-24 rounded-b-lg transition-transform duration-100 ${isPressed ? 'bg-cyan-500 transform translate-y-2' : 'bg-gray-500'}`} />
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
 
 const getChordNotes = (rootNote: string, chordType: string, octave: number): string[] => {
     const noteBases = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -827,7 +967,6 @@ const DetailView: React.FC<{ trackData: TrackType; currentStep: number; isPlayin
 
   const [synthView, setSynthView] = useState<SynthEditorView>('pianoroll');
   const [drumView, setDrumView] = useState<DrumEditorView>('sequencer');
-  // FIX: Add state for zoom level in DetailView
   const [zoom, setZoom] = useState(1);
   
   const isSynthTrack = trackData.type === 'synth';
@@ -865,8 +1004,8 @@ const DetailView: React.FC<{ trackData: TrackType; currentStep: number; isPlayin
         {isSynthTrack && synthView === 'pianoroll' && <div className="flex-grow overflow-auto" ref={containerRef}><div className="flex relative"><div className="flex-shrink-0 bg-gray-800 sticky left-0 z-10">{PIANO_ROLL_NOTES.map(note => <button key={note} onClick={() => playNotePreview(note)} className={`w-24 h-6 flex items-center justify-center border-b border-r border-gray-600 text-xs font-mono transition-colors ${note.includes('#') ? 'bg-gray-600 text-white hover:bg-gray-500' : 'bg-gray-300 text-black hover:bg-gray-400'}`}>{JAPANESE_NOTE_NAMES[note] || note}</button>)}</div><div className="flex-grow"><PianoRoll notes={trackData.notes} bars={bars} currentStep={currentStep} isPlaying={isPlaying} onNotesChange={(newNotes) => onUpdatePatternOrNotes(newNotes)} zoom={zoom} /></div></div></div>}
         {isSynthTrack && synthView === 'keyboard' && specificView ==='keyboard' && <div className="flex-grow flex items-center justify-center bg-gray-900/50"><PianoKeyboard playNotePreview={playNotePreview} /></div>}
         {isSynthTrack && synthView === 'guitar' && specificView === 'guitar' && <div className="flex-grow flex items-center justify-center bg-gray-900/50"><GuitarFretboard playNotePreview={playNotePreview} /></div>}
-        {isSynthTrack && synthView === 'string' && specificView === 'string' && <StringView />}
-        {isSynthTrack && synthView === 'wind' && specificView === 'wind' && <WindView />}
+        {isSynthTrack && synthView === 'string' && specificView === 'string' && <StringView playNotePreview={playNotePreview} />}
+        {isSynthTrack && synthView === 'wind' && specificView === 'wind' && <WindView playNotePreview={playNotePreview} />}
         
         {isDrumTrack && drumView === 'sequencer' && <div className="flex-grow overflow-auto" ref={containerRef}><div className="flex relative"><div className="flex-shrink-0 bg-gray-800 sticky left-0 z-10"><div>{trackData.pattern.sounds.map((sound, index) => <button key={sound} onClick={() => playDrumPreview(index)} className="h-10 w-28 flex items-center justify-center bg-gray-700 hover:bg-gray-600 border-b border-r border-gray-600 text-sm font-semibold capitalize transition-colors">{JAPANESE_DRUM_NAMES[sound] || sound}</button>)}</div></div><div className="flex-grow"><DrumSequencer pattern={trackData.pattern} bars={bars} currentStep={currentStep} isPlaying={isPlaying} onPatternChange={(newGrid) => onUpdatePatternOrNotes(newGrid)} /></div></div></div>}
         {isDrumTrack && drumView === 'pad' && <DrumPadView sounds={trackData.pattern.sounds} playDrumPreview={playDrumPreview} />}
@@ -875,7 +1014,7 @@ const DetailView: React.FC<{ trackData: TrackType; currentStep: number; isPlayin
   );
 };
 
-const TimelineRuler: React.FC<{ bars: number; currentStep: number; isPlaying: boolean; stepWidthPx: number; loopStartBar: number; loopEndBar: number; onLoopRangeChange: (start: number, end: number) => void; arrangementContainerRef: React.RefObject<HTMLDivElement>; }> = ({ bars, stepWidthPx, loopStartBar, loopEndBar, onLoopRangeChange, arrangementContainerRef }) => {
+const TimelineRuler: React.FC<{ bars: number; currentStep: number; isPlaying: boolean; stepWidthPx: number; loopStartBar: number; loopEndBar: number; onLoopRangeChange: (start: number, end: number) => void; onScrub: (step: number) => void; arrangementContainerRef: React.RefObject<HTMLDivElement>; }> = ({ bars, stepWidthPx, loopStartBar, loopEndBar, onLoopRangeChange, onScrub, arrangementContainerRef }) => {
     const totalSteps = bars * 16, width = totalSteps * stepWidthPx;
     const rulerRef = useRef<HTMLDivElement>(null), dragStartBar = useRef<number | null>(null), autoScrollIntervalRef = useRef<number | null>(null);
     const stopAutoScroll = () => { if (autoScrollIntervalRef.current) { clearInterval(autoScrollIntervalRef.current); autoScrollIntervalRef.current = null; } };
@@ -962,6 +1101,7 @@ const App: React.FC = () => {
 
   const [sessionData, setSessionData] = useState<SessionData>(getInitialData);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [isPaused, setIsPaused] = useState<boolean>(false);
   const [currentStep, setCurrentStep] = useState<number>(0);
   const [isShareModalOpen, setIsShareModalOpen] = useState<boolean>(false);
   const [shareUrl, setShareUrl] = useState<string>('');
@@ -971,6 +1111,9 @@ const App: React.FC = () => {
   const [loadingText, setLoadingText] = useState('');
   const [selectedTrackId, setSelectedTrackId] = useState<string | null>(getInitialData().tracks[0]?.id ?? null);
   const [instrumentModalState, setInstrumentModalState] = useState({ isOpen: false, trackId: '' });
+  const [detailViewHeight, setDetailViewHeight] = useState(window.innerHeight * 0.45);
+  const [isDetailViewCollapsed, setIsDetailViewCollapsed] = useState(false);
+  
   const audioEngine = useRef<AudioEngine | null>(null);
   const arrangementContainerRef = useRef<HTMLDivElement>(null);
   const detailContainerRef = useRef<HTMLDivElement>(null);
@@ -995,22 +1138,39 @@ const App: React.FC = () => {
   };
 
   const play = async () => {
-      if (!audioEngine.current || !isAudioEngineReady) await initAudioEngine();
-      if (!audioEngine.current) return;
-      if (!isPlaying) {
-          const loopStartStep = (sessionData.loopStartBar - 1) * 16;
+    if (!audioEngine.current || !isAudioEngineReady) await initAudioEngine();
+    if (!audioEngine.current) return;
+
+    if (!isPlaying) {
+        const stepDuration = 60 / sessionData.bpm / 4;
+        const loopStartStep = (sessionData.loopStartBar - 1) * 16;
+        const stepToResume = isPaused ? currentStep : loopStartStep;
+        
+        if (!isPaused) {
           setCurrentStep(loopStartStep);
-          playbackStartTime.current = audioEngine.current.getCurrentTime();
-          scheduledNotes.current.clear();
-          audioEngine.current.start();
-          setIsPlaying(true);
-      }
+        }
+
+        playbackStartTime.current = audioEngine.current.getCurrentTime() - (stepToResume - loopStartStep) * stepDuration;
+        scheduledNotes.current.clear();
+        audioEngine.current.start();
+        setIsPlaying(true);
+        setIsPaused(false);
+    }
   };
   
-  const stop = () => {
+  const pause = () => {
     if (audioEngine.current && isPlaying) {
+        audioEngine.current.stop();
+        setIsPlaying(false);
+        setIsPaused(true);
+    }
+  };
+
+  const stop = () => {
+    if (audioEngine.current && (isPlaying || isPaused)) {
       audioEngine.current.stop();
       setIsPlaying(false);
+      setIsPaused(false);
       const loopStartStep = (sessionData.loopStartBar - 1) * 16;
       setCurrentStep(loopStartStep);
     }
@@ -1166,6 +1326,59 @@ const App: React.FC = () => {
     updateTrackPatternOrNotes(selectedTrackId, [...selectedTrack.notes, ...newNotes]);
   };
 
+  const handleResizePointerDown = (e: React.PointerEvent) => {
+    e.preventDefault();
+    const startY = e.clientY;
+    const startHeight = detailViewHeight;
+    const handlePointerMove = (moveEvent: PointerEvent) => {
+        const dy = startY - moveEvent.clientY;
+        const newHeight = Math.min(window.innerHeight - 250, Math.max(80, startHeight + dy));
+        setDetailViewHeight(newHeight);
+    };
+    const handlePointerUp = () => {
+        window.removeEventListener('pointermove', handlePointerMove);
+        window.removeEventListener('pointerup', handlePointerUp);
+    };
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+  };
+
+  const selectedTrack = sessionData.tracks.find(t => t.id === selectedTrackId);
+  const totalSteps = sessionData.bars * 16;
+  const STEP_WIDTH_PX = 24;
+  const arrangementWidth = totalSteps * STEP_WIDTH_PX;
+
+  const handlePlayheadScrub = (e: React.PointerEvent) => {
+      e.preventDefault();
+      if (!arrangementContainerRef.current) return;
+      if (isPlaying || isPaused) stop();
+
+      const container = arrangementContainerRef.current;
+      const rect = container.getBoundingClientRect();
+      const trackHeaderWidth = 192; // 12rem
+
+      const getStepFromClientX = (clientX: number): number => {
+          const scrollOffset = container.scrollLeft;
+          const positionInContainer = clientX - rect.left + scrollOffset;
+          const positionInTimeline = positionInContainer - trackHeaderWidth;
+          const step = Math.round(positionInTimeline / STEP_WIDTH_PX);
+          return Math.max(0, Math.min(totalSteps - 1, step));
+      };
+
+      setCurrentStep(getStepFromClientX(e.clientX));
+
+      const handlePointerMove = (moveEvent: PointerEvent) => {
+          setCurrentStep(getStepFromClientX(moveEvent.clientX));
+      };
+      const handlePointerUp = () => {
+          window.removeEventListener('pointermove', handlePointerMove);
+          window.removeEventListener('pointerup', handlePointerUp);
+      };
+      window.addEventListener('pointermove', handlePointerMove);
+      window.addEventListener('pointerup', handlePointerUp);
+  };
+
+
   if (!isAudioEngineReady) {
       return (
           <div className="flex flex-col items-center justify-center h-screen bg-gray-950 text-white">
@@ -1177,11 +1390,6 @@ const App: React.FC = () => {
           </div>
       );
   }
-
-  const selectedTrack = sessionData.tracks.find(t => t.id === selectedTrackId);
-  const totalSteps = sessionData.bars * 16;
-  const STEP_WIDTH_PX = 24;
-  const arrangementWidth = totalSteps * STEP_WIDTH_PX;
 
   return (
     <>
@@ -1197,18 +1405,24 @@ const App: React.FC = () => {
             </div>
         </header>
         
-        <div className="flex-shrink-0 bg-gray-900 border-b border-gray-800"><Transport isPlaying={isPlaying} onPlay={play} onStop={stop} bpm={sessionData.bpm} onBpmChange={updateBPM} bars={sessionData.bars} onBarsChange={updateBars} /></div>
+        <div className="flex-shrink-0 bg-gray-900 border-b border-gray-800"><Transport isPlaying={isPlaying} isPaused={isPaused} onPlay={play} onPause={pause} onStop={stop} bpm={sessionData.bpm} onBpmChange={updateBPM} bars={sessionData.bars} onBarsChange={updateBars} /></div>
 
         <main className="flex-grow flex flex-col min-h-0">
           <div className="flex-grow flex flex-col overflow-hidden">
             <div className="flex-grow overflow-auto overscroll-y-contain" ref={arrangementContainerRef}>
-              <div className="relative" style={{ width: `${arrangementWidth}px`}}>
+              <div className="relative" style={{ width: `calc(${arrangementWidth}px + 12rem)`}}>
                 <div className="sticky top-0 z-20 flex bg-gray-800 border-b border-gray-700 h-6">
-                  <div className="w-48 flex-shrink-0 p-2 font-semibold px-3 border-r border-gray-700 flex items-center text-sm">トラック</div>
-                  <div className="flex-grow"><TimelineRuler bars={sessionData.bars} currentStep={currentStep} isPlaying={isPlaying} stepWidthPx={STEP_WIDTH_PX} loopStartBar={sessionData.loopStartBar} loopEndBar={sessionData.loopEndBar} onLoopRangeChange={updateLoopRange} arrangementContainerRef={arrangementContainerRef} /></div>
+                  <div className="w-48 flex-shrink-0 p-2 font-semibold px-3 border-r border-gray-700 flex items-center text-sm sticky left-0 bg-gray-800 z-10">トラック</div>
+                  <div className="flex-grow relative">
+                    <TimelineRuler bars={sessionData.bars} currentStep={currentStep} isPlaying={isPlaying} stepWidthPx={STEP_WIDTH_PX} loopStartBar={sessionData.loopStartBar} loopEndBar={sessionData.loopEndBar} onLoopRangeChange={updateLoopRange} onScrub={(step) => setCurrentStep(step)} arrangementContainerRef={arrangementContainerRef} />
+                  </div>
                 </div>
-                {isPlaying && <div className="absolute w-0.5 bg-red-500/90 pointer-events-none z-5" style={{ left: `${currentStep * STEP_WIDTH_PX}px`, top: '1.5rem', height: 'calc(100% - 1.5rem)' }} />}
-                {sessionData.tracks.map(track => <Track key={track.id} trackData={track} isSelected={track.id === selectedTrackId} onSelect={() => setSelectedTrackId(track.id)} onUpdateTrack={(props) => updateTrackProperties(track.id, props)} onDeleteTrack={() => deleteTrack(track.id)} onOpenInstrumentSelector={() => setInstrumentModalState({isOpen: true, trackId: track.id})} totalSteps={totalSteps} stepWidthPx={STEP_WIDTH_PX} />)}
+                <div className="relative">
+                    {sessionData.tracks.map(track => <Track key={track.id} trackData={track} isSelected={track.id === selectedTrackId} onSelect={() => setSelectedTrackId(track.id)} onUpdateTrack={(props) => updateTrackProperties(track.id, props)} onDeleteTrack={() => deleteTrack(track.id)} onOpenInstrumentSelector={() => setInstrumentModalState({isOpen: true, trackId: track.id})} totalSteps={totalSteps} stepWidthPx={STEP_WIDTH_PX} />)}
+                    <div className="absolute top-0 bottom-0 w-0.5 bg-red-500/90 z-20" style={{ left: `calc(12rem + ${currentStep * STEP_WIDTH_PX}px)` }}>
+                      <div onPointerDown={handlePlayheadScrub} className="absolute -top-1.5 left-1/2 w-5 h-5 rounded-full bg-red-500 border-2 border-white cursor-grab active:cursor-grabbing pointer-events-auto shadow-lg" style={{ transform: 'translateX(-50%)' }} />
+                    </div>
+                </div>
               </div>
             </div>
             <div className="flex-shrink-0 p-3 flex items-center space-x-2 border-t border-gray-800 bg-gray-800">
@@ -1216,7 +1430,12 @@ const App: React.FC = () => {
                 <button onClick={() => addTrack('drum')} className="flex items-center space-x-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-md transition duration-200"><PlusIcon /> <span>ドラムを追加</span></button>
             </div>
           </div>
-          <div className="h-[45%] flex-shrink-0 border-t-2 border-gray-700 flex flex-col bg-gray-900">
+          <div onPointerDown={handleResizePointerDown} className="group flex-shrink-0 h-3 bg-gray-800 hover:bg-cyan-500 cursor-row-resize transition-colors duration-200 flex items-center justify-center relative">
+              <button onClick={(e) => { e.stopPropagation(); setIsDetailViewCollapsed(!isDetailViewCollapsed); }} className="absolute w-10 h-5 bg-gray-700 group-hover:bg-cyan-700 rounded-full text-white text-xs flex items-center justify-center -top-1 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {isDetailViewCollapsed ? '▲' : '▼'}
+              </button>
+          </div>
+          <div className={`flex-shrink-0 border-t-2 border-gray-700 flex flex-col bg-gray-900 transition-all duration-200 ease-in-out ${isDetailViewCollapsed ? 'overflow-hidden' : ''}`} style={{ height: isDetailViewCollapsed ? '0px' : `${detailViewHeight}px` }}>
               {selectedTrack ? <DetailView key={selectedTrack.id} trackData={selectedTrack} currentStep={currentStep} isPlaying={isPlaying} onUpdatePatternOrNotes={(newData) => updateTrackPatternOrNotes(selectedTrack.id, newData)} onInsertChord={handleInsertChord} bars={sessionData.bars} containerRef={detailContainerRef} playNotePreview={playNotePreview} playDrumPreview={playDrumPreview} /> : <div className="flex items-center justify-center h-full text-gray-500">編集するトラックを選択してください</div>}
           </div>
         </main>
