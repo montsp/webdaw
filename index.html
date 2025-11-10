@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ウェブDAW - ブラウザシーケンサー</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              'gray-950': '#121212',
+              'gray-900': '#181818',
+              'gray-800': '#282828',
+              'gray-700': '#383838',
+              'gray-600': '#535353',
+              'cyan': {
+                '400': '#2dd4bf',
+                '500': '#14b8a6',
+                '600': '#0d9488',
+              },
+            },
+          },
+        },
+      }
+    </script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0"
+  }
+}
+</script>
+</head>
+  <body class="bg-gray-950 text-white antialiased">
+    <div id="root"></div>
+    <script type="text/babel" data-type="module" src="/index.tsx"></script>
+  </body>
+</html>
