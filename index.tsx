@@ -103,6 +103,16 @@ const BassIcon: React.FC<{className?: string}> = ({className}) => <svg className
 const SynthIcon: React.FC<{className?: string}> = ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 17h2.32a2 2 0 0 0 1.74-1.03L9 12.5l1.88 3.76A2 2 0 0 0 12.68 17H15" /><path d="M19 17h2" /><path d="M3 7h2" /><path d="M19 7h2" /><path d="M7 7h2.24a2 2 0 0 0 1.79-1.11L13 2" /><path d="M17 7h-2.24a2 2 0 0 0-1.79 1.11L11 11.5" /><rect x="2" y="2" width="20" height="20" rx="2" ry="2" stroke="none" fill="currentColor" fillOpacity="0.1" /></svg>;
 const StringsIcon: React.FC<{className?: string}> = ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 12c-3.5 2.5-7 4-11 4" /><path d="M6 16c-2 0-3.5-1-5-3" /><path d="M22 6c-3.5 2.5-7 4-11 4" /><path d="M11 10c-2 0-3.5-1-5-3" /><path d="m2 2 20 20" /></svg>;
 const WindsIcon: React.FC<{className?: string}> = ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 6a2 2 0 0 1-2 2h-2a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h2a2 2 0 0 1 2 2" /><path d="M16 8a2 2 0 1 0-4 0v4a2 2 0 1 0 4 0" /><path d="M10 8a2 2 0 1 0-4 0v4a2 2 0 1 0 4 0" /><path d="M4 8a2 2 0 1 0-4 0v4a2 2 0 1 0 4 0" /></svg>;
+const FullscreenEnterIcon: React.FC = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+    </svg>
+);
+const FullscreenExitIcon: React.FC = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 0-2-2h-3M3 16h3a2 2 0 0 0 2 2v3"/>
+    </svg>
+);
 
 
 // --- BUNDLED CONSTANTS (from constants.ts) ---
@@ -997,8 +1007,10 @@ const DetailView: React.FC<{ trackData: TrackType; currentStep: number; isPlayin
     <div className="flex flex-col h-full bg-gray-800">
       <header className="flex-shrink-0 bg-gray-900 p-2 border-b border-gray-700 flex justify-between items-center flex-wrap gap-2">
         <div className="flex items-center space-x-4"><h2 className="font-semibold text-white">MIDIエディター: <span className="text-cyan-400">{trackData.name}</span></h2>{renderViewToggle()}</div>
-        {isSynthTrack && <ChordInputPanel onInsertChord={onInsertChord} />}
-        {isSynthTrack && synthView === 'pianoroll' && <div className="flex items-center space-x-2"><span className="text-xs text-gray-400">ズーム</span><button onClick={() => setZoom(z => Math.max(0.25, z - 0.25))} className="w-6 h-6 bg-gray-700 hover:bg-gray-600 rounded text-center">-</button><input type="range" min="0.25" max="4" step="0.25" value={zoom} onChange={(e) => setZoom(parseFloat(e.target.value))} className="w-24 h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer" aria-label="ズームレベル" /><button onClick={() => setZoom(z => Math.min(4, z + 0.25))} className="w-6 h-6 bg-gray-700 hover:bg-gray-600 rounded text-center">+</button></div>}
+        <div className="flex items-center gap-4">
+            {isSynthTrack && <ChordInputPanel onInsertChord={onInsertChord} />}
+            {isSynthTrack && synthView === 'pianoroll' && <div className="flex items-center space-x-2"><span className="text-xs text-gray-400">ズーム</span><button onClick={() => setZoom(z => Math.max(0.25, z - 0.25))} className="w-6 h-6 bg-gray-700 hover:bg-gray-600 rounded text-center">-</button><input type="range" min="0.25" max="4" step="0.25" value={zoom} onChange={(e) => setZoom(parseFloat(e.target.value))} className="w-24 h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer" aria-label="ズームレベル" /><button onClick={() => setZoom(z => Math.min(4, z + 0.25))} className="w-6 h-6 bg-gray-700 hover:bg-gray-600 rounded text-center">+</button></div>}
+        </div>
       </header>
       <div className="flex-grow flex flex-col min-h-0">
         {isSynthTrack && synthView === 'pianoroll' && <div className="flex-grow overflow-auto" ref={containerRef}><div className="flex relative"><div className="flex-shrink-0 bg-gray-800 sticky left-0 z-10">{PIANO_ROLL_NOTES.map(note => <button key={note} onClick={() => playNotePreview(note)} className={`w-24 h-6 flex items-center justify-center border-b border-r border-gray-600 text-xs font-mono transition-colors ${note.includes('#') ? 'bg-gray-600 text-white hover:bg-gray-500' : 'bg-gray-300 text-black hover:bg-gray-400'}`}>{JAPANESE_NOTE_NAMES[note] || note}</button>)}</div><div className="flex-grow"><PianoRoll notes={trackData.notes} bars={bars} currentStep={currentStep} isPlaying={isPlaying} onNotesChange={(newNotes) => onUpdatePatternOrNotes(newNotes)} zoom={zoom} /></div></div></div>}
@@ -1014,10 +1026,11 @@ const DetailView: React.FC<{ trackData: TrackType; currentStep: number; isPlayin
   );
 };
 
-const TimelineRuler: React.FC<{ bars: number; currentStep: number; isPlaying: boolean; stepWidthPx: number; loopStartBar: number; loopEndBar: number; onLoopRangeChange: (start: number, end: number) => void; onScrub: (step: number) => void; arrangementContainerRef: React.RefObject<HTMLDivElement>; }> = ({ bars, stepWidthPx, loopStartBar, loopEndBar, onLoopRangeChange, onScrub, arrangementContainerRef }) => {
+const TimelineRuler: React.FC<{ bars: number; currentStep: number; isPlaying: boolean; stepWidthPx: number; loopStartBar: number; loopEndBar: number; onLoopRangeChange: (start: number, end: number) => void; onPlayheadMove: (step: number) => void; arrangementContainerRef: React.RefObject<HTMLDivElement>; }> = ({ bars, stepWidthPx, loopStartBar, loopEndBar, onLoopRangeChange, onPlayheadMove, arrangementContainerRef }) => {
     const totalSteps = bars * 16, width = totalSteps * stepWidthPx;
     const rulerRef = useRef<HTMLDivElement>(null), dragStartBar = useRef<number | null>(null), autoScrollIntervalRef = useRef<number | null>(null);
     const stopAutoScroll = () => { if (autoScrollIntervalRef.current) { clearInterval(autoScrollIntervalRef.current); autoScrollIntervalRef.current = null; } };
+    
     const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
         if (!rulerRef.current || !arrangementContainerRef.current) return;
         const arrangementContainer = arrangementContainerRef.current, arrangementRect = arrangementContainer.getBoundingClientRect(), barWidth = 16 * stepWidthPx;
@@ -1039,6 +1052,15 @@ const TimelineRuler: React.FC<{ bars: number; currentStep: number; isPlaying: bo
         const handlePointerUp = () => { stopAutoScroll(); dragStartBar.current = null; window.removeEventListener('pointermove', handlePointerMove); window.removeEventListener('pointerup', handlePointerUp); };
         window.addEventListener('pointermove', handlePointerMove); window.addEventListener('pointerup', handlePointerUp);
     };
+
+    const handleDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (!rulerRef.current) return;
+        const rect = rulerRef.current.getBoundingClientRect();
+        const xInRuler = e.clientX - rect.left;
+        const step = Math.round(xInRuler / stepWidthPx);
+        onPlayheadMove(Math.max(0, Math.min(totalSteps - 1, step)));
+    };
+
     const markers = [];
     for (let i = 0; i < totalSteps; i++) {
         if (i % 16 === 0) markers.push(<div key={`bar-${i}`} className="text-xs text-gray-400 absolute select-none" style={{left: `${i * stepWidthPx}px`}}>{i / 16 + 1}</div>);
@@ -1046,7 +1068,7 @@ const TimelineRuler: React.FC<{ bars: number; currentStep: number; isPlaying: bo
     }
     const loopRegionLeft = (loopStartBar - 1) * 16 * stepWidthPx;
     const loopRegionWidth = (loopEndBar - loopStartBar + 1) * 16 * stepWidthPx;
-    return <div ref={rulerRef} className="relative h-6 cursor-pointer touch-none" style={{width: `${width}px`}} onPointerDown={handlePointerDown} onDoubleClick={() => onLoopRangeChange(1, bars)}><div className="absolute top-0 h-full bg-cyan-500/20 rounded" style={{ left: `${loopRegionLeft}px`, width: `${loopRegionWidth}px`, pointerEvents: 'none' }} />{markers}</div>;
+    return <div ref={rulerRef} className="relative h-6 cursor-pointer touch-none" style={{width: `${width}px`}} onPointerDown={handlePointerDown} onDoubleClick={handleDoubleClick}><div className="absolute top-0 h-full bg-cyan-500/20 rounded" style={{ left: `${loopRegionLeft}px`, width: `${loopRegionWidth}px`, pointerEvents: 'none' }} />{markers}</div>;
 };
 
 const Clip: React.FC<{trackData: TrackType, totalSteps: number, stepWidthPx: number}> = ({ trackData, totalSteps, stepWidthPx }) => {
@@ -1113,6 +1135,7 @@ const App: React.FC = () => {
   const [instrumentModalState, setInstrumentModalState] = useState({ isOpen: false, trackId: '' });
   const [detailViewHeight, setDetailViewHeight] = useState(window.innerHeight * 0.45);
   const [isDetailViewCollapsed, setIsDetailViewCollapsed] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   
   const audioEngine = useRef<AudioEngine | null>(null);
   const arrangementContainerRef = useRef<HTMLDivElement>(null);
@@ -1237,6 +1260,22 @@ const App: React.FC = () => {
     }
     return () => clearInterval(timerId);
   }, [isPlaying, isAudioEngineReady, sessionData]);
+  
+  useEffect(() => {
+    const onFullScreenChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', onFullScreenChange);
+    return () => document.removeEventListener('fullscreenchange', onFullScreenChange);
+  }, []);
+
+  const toggleFullScreen = () => {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+            alert(`フルスクリーンモードにできませんでした: ${err.message} (${err.name})`);
+        });
+    } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+    }
+  };
 
   const updateBPM = (newBpm: number) => setSessionData(prev => ({ ...prev, bpm: newBpm }));
   const updateBars = (newBars: number) => {
@@ -1378,6 +1417,13 @@ const App: React.FC = () => {
       window.addEventListener('pointerup', handlePointerUp);
   };
 
+  const handleRulerDoubleClick = (step: number) => {
+      if (isPlaying || isPaused) {
+          stop();
+      }
+      setCurrentStep(step);
+  };
+
 
   if (!isAudioEngineReady) {
       return (
@@ -1401,6 +1447,9 @@ const App: React.FC = () => {
             <h1 className="text-3xl font-bold text-white tracking-tight">WebDAW<span className="text-cyan-400">.</span></h1>
             <div className="flex items-center space-x-4 mt-4 sm:mt-0">
               <HelpTooltip />
+              <button onClick={toggleFullScreen} className="p-2 rounded-full bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white transition-colors" aria-label={isFullscreen ? "フルスクリーン解除" : "フルスクリーン"}>
+                {isFullscreen ? <FullscreenExitIcon /> : <FullscreenEnterIcon />}
+              </button>
               <button onClick={handleShare} className="bg-cyan-500 hover:bg-cyan-600 text-white font-semibold py-2 px-4 rounded-md transition duration-200">プロジェクトを共有</button>
             </div>
         </header>
@@ -1414,13 +1463,13 @@ const App: React.FC = () => {
                 <div className="sticky top-0 z-20 flex bg-gray-800 border-b border-gray-700 h-6">
                   <div className="w-48 flex-shrink-0 p-2 font-semibold px-3 border-r border-gray-700 flex items-center text-sm sticky left-0 bg-gray-800 z-10">トラック</div>
                   <div className="flex-grow relative">
-                    <TimelineRuler bars={sessionData.bars} currentStep={currentStep} isPlaying={isPlaying} stepWidthPx={STEP_WIDTH_PX} loopStartBar={sessionData.loopStartBar} loopEndBar={sessionData.loopEndBar} onLoopRangeChange={updateLoopRange} onScrub={(step) => setCurrentStep(step)} arrangementContainerRef={arrangementContainerRef} />
+                    <TimelineRuler bars={sessionData.bars} currentStep={currentStep} isPlaying={isPlaying} stepWidthPx={STEP_WIDTH_PX} loopStartBar={sessionData.loopStartBar} loopEndBar={sessionData.loopEndBar} onLoopRangeChange={updateLoopRange} onPlayheadMove={handleRulerDoubleClick} arrangementContainerRef={arrangementContainerRef} />
                   </div>
                 </div>
                 <div className="relative">
                     {sessionData.tracks.map(track => <Track key={track.id} trackData={track} isSelected={track.id === selectedTrackId} onSelect={() => setSelectedTrackId(track.id)} onUpdateTrack={(props) => updateTrackProperties(track.id, props)} onDeleteTrack={() => deleteTrack(track.id)} onOpenInstrumentSelector={() => setInstrumentModalState({isOpen: true, trackId: track.id})} totalSteps={totalSteps} stepWidthPx={STEP_WIDTH_PX} />)}
                     <div className="absolute top-0 bottom-0 w-0.5 bg-red-500/90 z-20" style={{ left: `calc(12rem + ${currentStep * STEP_WIDTH_PX}px)` }}>
-                      <div onPointerDown={handlePlayheadScrub} className="absolute -top-1.5 left-1/2 w-5 h-5 rounded-full bg-red-500 border-2 border-white cursor-grab active:cursor-grabbing pointer-events-auto shadow-lg" style={{ transform: 'translateX(-50%)' }} />
+                      <div onPointerDown={handlePlayheadScrub} className="absolute -top-3 left-1/2 w-8 h-8 rounded-full bg-red-500 border-2 border-white cursor-grab active:cursor-grabbing pointer-events-auto shadow-lg" style={{ transform: 'translateX(-50%)' }} />
                     </div>
                 </div>
               </div>
@@ -1430,9 +1479,15 @@ const App: React.FC = () => {
                 <button onClick={() => addTrack('drum')} className="flex items-center space-x-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-md transition duration-200"><PlusIcon /> <span>ドラムを追加</span></button>
             </div>
           </div>
-          <div onPointerDown={handleResizePointerDown} className="group flex-shrink-0 h-3 bg-gray-800 hover:bg-cyan-500 cursor-row-resize transition-colors duration-200 flex items-center justify-center relative">
-              <button onClick={(e) => { e.stopPropagation(); setIsDetailViewCollapsed(!isDetailViewCollapsed); }} className="absolute w-10 h-5 bg-gray-700 group-hover:bg-cyan-700 rounded-full text-white text-xs flex items-center justify-center -top-1 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-                  {isDetailViewCollapsed ? '▲' : '▼'}
+          <div onPointerDown={handleResizePointerDown} className="group flex-shrink-0 h-6 bg-gray-800 hover:bg-cyan-500/50 cursor-row-resize transition-colors duration-200 flex items-center justify-center relative">
+             <button
+                onClick={(e) => { e.stopPropagation(); setIsDetailViewCollapsed(!isDetailViewCollapsed); }}
+                className="w-16 h-4 bg-gray-700 group-hover:bg-cyan-600 rounded-full flex items-center justify-center text-white"
+                aria-label={isDetailViewCollapsed ? "エディターを表示" : "エディターを隠す"}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    {isDetailViewCollapsed ? <path d="M18 15l-6-6-6 6"/> : <path d="M6 9l6 6 6-6"/>}
+                </svg>
               </button>
           </div>
           <div className={`flex-shrink-0 border-t-2 border-gray-700 flex flex-col bg-gray-900 transition-all duration-200 ease-in-out ${isDetailViewCollapsed ? 'overflow-hidden' : ''}`} style={{ height: isDetailViewCollapsed ? '0px' : `${detailViewHeight}px` }}>
