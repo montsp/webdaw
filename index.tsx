@@ -114,6 +114,14 @@ const FullscreenExitIcon: React.FC = () => (
     </svg>
 );
 
+const TogglePanelIcon: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2"/>
+        <path d="M3 15h18"/>
+        {isCollapsed ? <path d="m12 10 3 3H9l3-3z"/> : <path d="m9 10 3 3 3-3z"/>}
+    </svg>
+);
+
 
 // --- BUNDLED CONSTANTS (from constants.ts) ---
 const generatePianoRollData = () => {
@@ -1443,9 +1451,22 @@ const App: React.FC = () => {
       <InstrumentSelectorModal isOpen={instrumentModalState.isOpen} onClose={() => setInstrumentModalState({isOpen: false, trackId: ''})} onSelect={handleInstrumentSelect} />
 
       <div className="h-screen flex flex-col bg-gray-900 text-gray-200 font-sans">
-        <header className="flex-shrink-0 flex flex-col sm:flex-row justify-between items-center p-4 border-b border-gray-800 bg-gray-950">
-            <h1 className="text-3xl font-bold text-white tracking-tight">WebDAW<span className="text-cyan-400">.</span></h1>
-            <div className="flex items-center space-x-4 mt-4 sm:mt-0">
+        <header className="flex-shrink-0 flex flex-col sm:flex-row justify-between items-center p-4 border-b border-gray-800 bg-gray-950 space-y-4 sm:space-y-0">
+            <div className="flex items-center space-x-6">
+                <h1 className="text-3xl font-bold text-white tracking-tight">WebDAW<span className="text-cyan-400">.</span></h1>
+                {/* Toolbar */}
+                <div className="hidden sm:flex items-center space-x-2 border-l border-gray-700 pl-6">
+                    <button
+                        onClick={() => setIsDetailViewCollapsed(!isDetailViewCollapsed)}
+                        title={isDetailViewCollapsed ? "エディターを表示" : "エディターを隠す"}
+                        className={`p-2 rounded-md transition-colors ${!isDetailViewCollapsed ? 'bg-cyan-600 text-white' : 'bg-gray-700 hover:bg-gray-600 text-gray-300'}`}
+                        aria-label={isDetailViewCollapsed ? "エディターを表示" : "エディターを隠す"}
+                    >
+                        <TogglePanelIcon isCollapsed={isDetailViewCollapsed} />
+                    </button>
+                </div>
+            </div>
+            <div className="flex items-center space-x-4">
               <HelpTooltip />
               <button onClick={toggleFullScreen} className="p-2 rounded-full bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white transition-colors" aria-label={isFullscreen ? "フルスクリーン解除" : "フルスクリーン"}>
                 {isFullscreen ? <FullscreenExitIcon /> : <FullscreenEnterIcon />}
@@ -1479,16 +1500,8 @@ const App: React.FC = () => {
                 <button onClick={() => addTrack('drum')} className="flex items-center space-x-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-md transition duration-200"><PlusIcon /> <span>ドラムを追加</span></button>
             </div>
           </div>
-          <div onPointerDown={handleResizePointerDown} className="group flex-shrink-0 h-6 bg-gray-800 hover:bg-cyan-500/50 cursor-row-resize transition-colors duration-200 flex items-center justify-center relative">
-             <button
-                onClick={(e) => { e.stopPropagation(); setIsDetailViewCollapsed(!isDetailViewCollapsed); }}
-                className="w-16 h-4 bg-gray-700 group-hover:bg-cyan-600 rounded-full flex items-center justify-center text-white"
-                aria-label={isDetailViewCollapsed ? "エディターを表示" : "エディターを隠す"}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    {isDetailViewCollapsed ? <path d="M18 15l-6-6-6 6"/> : <path d="M6 9l6 6 6-6"/>}
-                </svg>
-              </button>
+          <div onPointerDown={handleResizePointerDown} className="group flex-shrink-0 h-4 bg-gray-800 hover:bg-cyan-500/50 cursor-row-resize transition-colors duration-200 flex items-center justify-center relative">
+              <div className="w-16 h-1 bg-gray-600 group-hover:bg-cyan-500 rounded-full transition-colors"></div>
           </div>
           <div className={`flex-shrink-0 border-t-2 border-gray-700 flex flex-col bg-gray-900 transition-all duration-200 ease-in-out ${isDetailViewCollapsed ? 'overflow-hidden' : ''}`} style={{ height: isDetailViewCollapsed ? '0px' : `${detailViewHeight}px` }}>
               {selectedTrack ? <DetailView key={selectedTrack.id} trackData={selectedTrack} currentStep={currentStep} isPlaying={isPlaying} onUpdatePatternOrNotes={(newData) => updateTrackPatternOrNotes(selectedTrack.id, newData)} onInsertChord={handleInsertChord} bars={sessionData.bars} containerRef={detailContainerRef} playNotePreview={playNotePreview} playDrumPreview={playDrumPreview} /> : <div className="flex items-center justify-center h-full text-gray-500">編集するトラックを選択してください</div>}
