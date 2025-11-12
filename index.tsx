@@ -114,6 +114,14 @@ const FullscreenExitIcon: React.FC = () => (
     </svg>
 );
 
+const DownloadIcon: React.FC = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
+    </svg>
+);
+
 const TogglePanelIcon: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => (
     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="3" width="18" height="18" rx="2"/>
@@ -289,6 +297,56 @@ function decodeSessionData(encodedData: string): SessionData | null {
     console.error("Failed to decode session data:", error);
     return null;
   }
+}
+
+function bufferToWav(buffer: AudioBuffer): Blob {
+    const numOfChan = buffer.numberOfChannels;
+    const length = buffer.length * numOfChan * 2 + 44;
+    const bufferArr = new ArrayBuffer(length);
+    const view = new DataView(bufferArr);
+    const channels = [];
+    let i, sample;
+    let offset = 0;
+    let pos = 0;
+
+    const setUint16 = (data: number) => {
+        view.setUint16(pos, data, true);
+        pos += 2;
+    };
+    const setUint32 = (data: number) => {
+        view.setUint32(pos, data, true);
+        pos += 4;
+    };
+
+    setUint32(0x46464952); // "RIFF"
+    setUint32(length - 8); 
+    setUint32(0x45564157); // "WAVE"
+    setUint32(0x20746d66); // "fmt "
+    setUint32(16);
+    setUint16(1); 
+    setUint16(numOfChan);
+    setUint32(buffer.sampleRate);
+    setUint32(buffer.sampleRate * 2 * numOfChan);
+    setUint16(numOfChan * 2);
+    setUint16(16); 
+    setUint32(0x61746164); // "data"
+    setUint32(length - pos - 4);
+
+    for (i = 0; i < buffer.numberOfChannels; i++) {
+        channels.push(buffer.getChannelData(i));
+    }
+
+    while (pos < length - 44) {
+        for (i = 0; i < numOfChan; i++) {
+            sample = Math.max(-1, Math.min(1, channels[i][offset]));
+            sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767) | 0;
+            view.setInt16(pos, sample, true);
+            pos += 2;
+        }
+        offset++;
+    }
+
+    return new Blob([view], { type: 'audio/wav' });
 }
 
 
@@ -478,6 +536,125 @@ const ShareModal: React.FC<{ url: string; onClose: () => void; }> = ({ url, onCl
       </div>
     </div>
   );
+};
+
+const ExportAudioModal: React.FC<{ isOpen: boolean; onClose: () => void; sessionData: SessionData; }> = ({ isOpen, onClose, sessionData }) => {
+    const [isRendering, setIsRendering] = useState(false);
+    const [progressText, setProgressText] = useState('');
+    const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!isOpen) {
+            setIsRendering(false);
+            setProgressText('');
+            if (downloadUrl) {
+                URL.revokeObjectURL(downloadUrl);
+                setDownloadUrl(null);
+            }
+        }
+    }, [isOpen, downloadUrl]);
+
+    const handleStartExport = async () => {
+        setIsRendering(true);
+        if (downloadUrl) URL.revokeObjectURL(downloadUrl);
+        setDownloadUrl(null);
+
+        try {
+            const totalDurationSeconds = (sessionData.bars * 4) * (60 / sessionData.bpm);
+            const sampleRate = 44100;
+            const offlineCtx = new OfflineAudioContext(2, Math.ceil(sampleRate * totalDurationSeconds), sampleRate);
+            
+            setProgressText('楽器を読み込んでいます...');
+            
+            const instrumentsToLoad: { name: string, type: 'synth' | 'drum' }[] = [];
+            sessionData.tracks.forEach(track => {
+                if (track.type === 'synth') instrumentsToLoad.push({ name: track.instrument, type: 'synth' });
+                else if (track.type === 'drum') instrumentsToLoad.push({ name: 'drum_kit', type: 'drum' });
+            });
+            const uniqueInstrumentNames = [...new Set(instrumentsToLoad.map(i => i.name))];
+            
+            const loadedInstruments = new Map<string, any>();
+            for (const name of uniqueInstrumentNames) {
+                const soundfontName = name === 'drum_kit' ? DRUM_INSTRUMENT_SOUNDFONT_NAME : SYNTH_INSTRUMENT_MAP[name as SynthInstrumentType];
+                const instrument = await Soundfont.instrument(offlineCtx, soundfontName, { soundfont: 'MusyngKite', gain: 2 });
+                loadedInstruments.set(name, instrument);
+            }
+
+            setProgressText('トラックをレンダリング中...');
+            const anySolo = sessionData.tracks.some(t => t.soloed);
+            const stepDuration = 60 / sessionData.bpm / 4;
+
+            sessionData.tracks.forEach((track, trackIndex) => {
+                 if (track.muted || (anySolo && !track.soloed)) return;
+                 setProgressText(`トラック ${trackIndex + 1}/${sessionData.tracks.length} をレンダリング中: ${track.name}`);
+
+                 if (track.type === 'drum') {
+                    const drumkit = loadedInstruments.get('drum_kit');
+                    if (!drumkit) return;
+                    track.pattern.grid.forEach((row, soundIndex) => {
+                        row.forEach((isActive, stepIndex) => {
+                            if(isActive) {
+                                const time = stepIndex * stepDuration;
+                                const note = DRUM_NOTE_MAP[track.pattern.sounds[soundIndex]];
+                                drumkit.play(note, time, { gain: track.volume * 1.5 });
+                            }
+                        })
+                    })
+                 } else if (track.type === 'synth') {
+                     const synth = loadedInstruments.get(track.instrument);
+                     if (!synth) return;
+                     track.notes.forEach(note => {
+                        const time = note.startBeat * 4 * stepDuration;
+                        const duration = note.duration * 4 * stepDuration;
+                        synth.play(note.pitch, time, { duration: duration, gain: track.volume });
+                     });
+                 }
+            });
+            
+            setProgressText('オーディオをエンコード中...');
+            const renderedBuffer = await offlineCtx.startRendering();
+            
+            setProgressText('WAVファイルを生成中...');
+            const wavBlob = bufferToWav(renderedBuffer);
+            const url = URL.createObjectURL(wavBlob);
+            setDownloadUrl(url);
+            setProgressText('エクスポートが完了しました！');
+
+        } catch (error) {
+            console.error("Audio export failed:", error);
+            setProgressText(`エラーが発生しました: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        } finally {
+            setIsRendering(false);
+        }
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4" onClick={onClose}>
+            <div className="bg-gray-800 rounded-lg p-6 shadow-xl max-w-lg w-full" onClick={(e) => e.stopPropagation()}>
+                <h2 className="text-2xl font-bold mb-4 text-white">音声ファイルとしてエクスポート</h2>
+                <p className="text-gray-400 mb-6">現在のプロジェクトをWAVファイルとしてレンダリングします。</p>
+
+                {progressText && <div className="my-4 p-3 bg-gray-900 rounded-md text-center text-gray-300">{progressText}</div>}
+
+                {downloadUrl ? (
+                    <a href={downloadUrl} download="weblaw-export.wav" className="block w-full text-center bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 rounded-md transition duration-200">
+                        ダウンロード
+                    </a>
+                ) : (
+                    <button onClick={handleStartExport} disabled={isRendering} className="w-full bg-cyan-500 hover:bg-cyan-600 disabled:bg-gray-600 disabled:cursor-wait text-white font-semibold py-3 px-4 rounded-md transition duration-200 flex items-center justify-center space-x-2">
+                        {isRendering && <div className="w-5 h-5 border-2 border-t-white border-transparent rounded-full animate-spin"></div>}
+                        <span>{isRendering ? 'レンダリング中...' : 'エクスポートを開始'}</span>
+                    </button>
+                )}
+                
+                <button onClick={onClose} disabled={isRendering} className="mt-4 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-md w-full disabled:opacity-50">
+                    閉じる
+                </button>
+            </div>
+        </div>
+    );
 };
 
 const InstrumentIcon: React.FC<{ instrument: SynthInstrumentType, className?: string }> = ({ instrument, className = "w-8 h-8" }) => {
@@ -1134,6 +1311,7 @@ const App: React.FC = () => {
   const [isPaused, setIsPaused] = useState<boolean>(false);
   const [currentStep, setCurrentStep] = useState<number>(0);
   const [isShareModalOpen, setIsShareModalOpen] = useState<boolean>(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState<boolean>(false);
   const [shareUrl, setShareUrl] = useState<string>('');
   const [isAudioEngineReady, setIsAudioEngineReady] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
@@ -1449,6 +1627,8 @@ const App: React.FC = () => {
     <>
       {isLoading && <LoadingOverlay text={loadingText} />}
       <InstrumentSelectorModal isOpen={instrumentModalState.isOpen} onClose={() => setInstrumentModalState({isOpen: false, trackId: ''})} onSelect={handleInstrumentSelect} />
+      <ExportAudioModal isOpen={isExportModalOpen} onClose={() => setIsExportModalOpen(false)} sessionData={sessionData} />
+
 
       <div className="h-screen flex flex-col bg-gray-900 text-gray-200 font-sans">
         <header className="flex-shrink-0 flex flex-col sm:flex-row justify-between items-center p-4 border-b border-gray-800 bg-gray-950 space-y-4 sm:space-y-0">
@@ -1470,6 +1650,10 @@ const App: React.FC = () => {
               <HelpTooltip />
               <button onClick={toggleFullScreen} className="p-2 rounded-full bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white transition-colors" aria-label={isFullscreen ? "フルスクリーン解除" : "フルスクリーン"}>
                 {isFullscreen ? <FullscreenExitIcon /> : <FullscreenEnterIcon />}
+              </button>
+              <button onClick={() => setIsExportModalOpen(true)} className="flex items-center space-x-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-md transition duration-200">
+                  <DownloadIcon />
+                  <span>エクスポート</span>
               </button>
               <button onClick={handleShare} className="bg-cyan-500 hover:bg-cyan-600 text-white font-semibold py-2 px-4 rounded-md transition duration-200">プロジェクトを共有</button>
             </div>
